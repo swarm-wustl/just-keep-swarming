@@ -2,6 +2,22 @@
 
 # Install
 
+## Pre-Commit Linters
+
+This repository uses a pre-commit hook to validate code quality. First, install the linters with
+
+```
+./install_linters.sh
+```
+
+Then change the Git hooks path:
+
+```
+git config core.hooksPath .githooks
+```
+
+Committing changes will now automatically trigger the linting process.
+
 ## Gazebo
 
 Gazebo is the physics simulator used by Swarm. The `simulation` package requires that it be installed. To install Gazebo and the bridge for ROS2 Humble, run:

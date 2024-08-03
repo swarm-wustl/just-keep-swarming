@@ -6,7 +6,6 @@ from rclpy.node import Node
 
 
 class MultiTwistPublisher(Node):
-
     def __init__(self):
         super().__init__("multi_twist_publisher")
 
