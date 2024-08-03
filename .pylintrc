@@ -13,4 +13,4 @@ good-names=i,
            package_name 
 
 [MESSAGES CONTROL]
-disable=missing-docstring,assigning-non-slot
+disable=missing-docstring,assigning-non-slot,unspecified-encoding,no-name-in-module

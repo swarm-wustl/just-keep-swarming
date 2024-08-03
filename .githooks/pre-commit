@@ -23,7 +23,7 @@ done
 staged_files=$(git diff --cached --name-only --diff-filter=ACM)
 
 # Format Python files
-python_files=$(echo "$staged_files" | grep -E '\.py$')
+python_files=$(echo "$staged_files" | grep -E '\.py$' || true)
 if [ -n "$python_files" ]; then
     echo "Formatting Python files..."
     echo "$python_files" | xargs black
@@ -32,25 +32,25 @@ fi
 
 echo "Formatted"
 
-# # Format C++ files
-# cpp_files=$(echo "$staged_files" | grep -E '\.(cpp|hpp|h)$')
-# echo $cpp_files
-# if [ -n "$cpp_files" ]; then
-#     echo "Formatting C++ files..."
-#     echo "$cpp_files" | xargs clang-format -i
-#     git add $cpp_files
-# fi
-#
-# # Format CMake files
-# cmake_files=$(echo "$staged_files" | grep -E '(CMakeLists\.txt|\.cmake)$')
-# if [ -n "$cmake_files" ]; then
-#     echo "Formatting CMake files..."
-#     echo "$cmake_files" | xargs cmake-format -i
-#     git add $cmake_files
-# fi
+# Format C++ files
+cpp_files=$(echo "$staged_files" | grep -E '\.(cpp|hpp|h)$' || true)
+echo $cpp_files
+if [ -n "$cpp_files" ]; then
+    echo "Formatting C++ files..."
+    echo "$cpp_files" | xargs clang-format -i
+    git add $cpp_files
+fi
+
+# Format CMake files
+cmake_files=$(echo "$staged_files" | grep -E '(CMakeLists\.txt|\.cmake)$' || true)
+if [ -n "$cmake_files" ]; then
+    echo "Formatting CMake files..."
+    echo "$cmake_files" | xargs cmake-format -i
+    git add $cmake_files
+fi
 
 # Format XML files (including .sdf)
-xml_files=$(echo "$staged_files" | grep -E '\.(xml|sdf)$')
+xml_files=$(echo "$staged_files" | grep -E '\.(xml|sdf)$' || true)
 if [ -n "$xml_files" ]; then
     echo "Formatting XML files..."
     for file in $xml_files; do
@@ -60,7 +60,7 @@ if [ -n "$xml_files" ]; then
 fi
 
 # Format YAML files
-yaml_files=$(echo "$staged_files" | grep -E '\.ya?ml$')
+yaml_files=$(echo "$staged_files" | grep -E '\.ya?ml$' || true)
 if [ -n "$yaml_files" ]; then
     echo "Formatting YAML files..."
     for file in $yaml_files; do
@@ -69,15 +69,15 @@ if [ -n "$yaml_files" ]; then
     git add $yaml_files
 fi
 
-# # Format JSON files
-# json_files=$(echo "$staged_files" | grep -E '\.json$')
-# if [ -n "$json_files" ]; then
-#     echo "Formatting JSON files..."
-#     for file in $json_files; do
-#         jq . "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
-#     done
-#     git add $json_files
-# fi
+# Format JSON files
+json_files=$(echo "$staged_files" | grep -E '\.json$' || true)
+if [ -n "$json_files" ]; then
+    echo "Formatting JSON files..."
+    for file in $json_files; do
+        jq . "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+    done
+    git add $json_files
+fi
 
 # Lint C++ files
 if [ -n "$cpp_files" ]; then
@@ -109,6 +109,10 @@ fi
 echo "Running colcon test..."
 if ! colcon test; then
     echo "colcon test failed. Commit aborted."
+    if ! colcon test-result --all --verbose; then
+      cd -
+      exit 1
+    fi
     cd -
     exit 1
 fi
