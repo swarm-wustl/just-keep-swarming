@@ -1,0 +1,37 @@
+#!/bin/bash
+
+# Lint commit message
+lint_commit_msg() {
+    local msg="$1"
+    local type_pattern="^(feat|fix|docs|style|refactor|test|chore)"
+    local scope_pattern="\([a-z0-9_-]+\)"
+    local subject_pattern=": [A-Z].*[^\.]$"
+    local full_pattern="$type_pattern$scope_pattern$subject_pattern"
+
+    if ! [[ $msg =~ $full_pattern ]]; then
+        echo "Error: Commit message does not match the required format."
+        echo "Required format: <type>(<scope>): <subject>"
+        echo "  - type should be one of: feat, fix, docs, style, refactor, test, chore"
+        echo "    - feat (feature)"
+        echo "    - fix (bug fix)"
+        echo "    - docs (documentation)"
+        echo "    - style (formatting, style changes)"
+        echo "    - refactor (change code with no bug fix or new feature)"
+        echo "    - test (add or change tests)"
+        echo "    - chore (maintenance, e.g., dependency upgrade)"
+        echo "    - revert (revert a previous commit)"
+        echo "  - scope should be a brief descriptor of the affected component"
+        echo "  - subject should start with a capital letter and not end with a period"
+        echo "Example: feat(navigation): Add new pathfinding algorithm"
+        return 1
+    fi
+    return 0
+}
+
+echo "Linting commit message..."
+commit_msg=$(cat "$1")
+if ! lint_commit_msg "$commit_msg"; then
+    exit 1
+fi
+
+echo "Commit message is properly formatted"

@@ -1,8 +1,14 @@
+"""
+Provides methods to replace variable syntax {% VARIABLE %} in an SDF file with
+provided variable values
+"""
+
 import re
 from typing import Dict
 
 
 def compile_sdf(content: str, subs: Dict[str, str]) -> str:
+    """Replace variables in `content` with values in `subs`"""
     pattern = re.compile(r"{%\s(\w+)\s%}")
 
     def replace_match(match):
@@ -21,8 +27,9 @@ def compile_sdf(content: str, subs: Dict[str, str]) -> str:
 
 
 def compile_sdf_file(filename: str, subs: dict) -> str:
+    """Calls `compile_sdf` on a given file"""
     try:
-        with open(filename, "r") as f:
+        with open(filename, "r", encoding="utf-8") as f:
             return compile_sdf(f.read(), subs)
     except IOError as e:
-        raise IOError(f"Error reading file {filename}: {e}")
+        raise IOError(f"Error reading file {filename}: {e}") from e

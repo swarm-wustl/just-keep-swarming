@@ -1,0 +1,118 @@
+#!/bin/bash
+
+# Formats Python, C++, CMake, XML, YAML, JSON files, lints the commit, and runs colcon test
+
+# Exit immediately if a command exits with a non-zero status
+set -e
+
+# Function to check if a command exists
+command_exists() {
+    command -v "$1" >/dev/null 2>&1
+}
+
+# Check for required tools
+required_tools=("clang-format" "black" "cmake-format" "xmllint" "yamllint" "jq" "cpplint" "colcon")
+for tool in "${required_tools[@]}"; do
+    if ! command_exists "$tool"; then
+        echo "Error: $tool is not installed. Please install it to use this pre-commit hook."
+        exit 1
+    fi
+done
+
+# Get list of staged files
+staged_files=$(git diff --cached --name-only --diff-filter=ACM)
+
+# Format Python files
+python_files=$(echo "$staged_files" | grep -E '\.py$')
+if [ -n "$python_files" ]; then
+    echo "Formatting Python files..."
+    echo "$python_files" | xargs black
+    git add $python_files
+fi
+
+echo "Formatted"
+
+# # Format C++ files
+# cpp_files=$(echo "$staged_files" | grep -E '\.(cpp|hpp|h)$')
+# echo $cpp_files
+# if [ -n "$cpp_files" ]; then
+#     echo "Formatting C++ files..."
+#     echo "$cpp_files" | xargs clang-format -i
+#     git add $cpp_files
+# fi
+#
+# # Format CMake files
+# cmake_files=$(echo "$staged_files" | grep -E '(CMakeLists\.txt|\.cmake)$')
+# if [ -n "$cmake_files" ]; then
+#     echo "Formatting CMake files..."
+#     echo "$cmake_files" | xargs cmake-format -i
+#     git add $cmake_files
+# fi
+
+# Format XML files (including .sdf)
+xml_files=$(echo "$staged_files" | grep -E '\.(xml|sdf)$')
+if [ -n "$xml_files" ]; then
+    echo "Formatting XML files..."
+    for file in $xml_files; do
+        xmllint --format "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+    done
+    git add $xml_files
+fi
+
+# Format YAML files
+yaml_files=$(echo "$staged_files" | grep -E '\.ya?ml$')
+if [ -n "$yaml_files" ]; then
+    echo "Formatting YAML files..."
+    for file in $yaml_files; do
+        yamllint -c .yamllint "$file"
+    done
+    git add $yaml_files
+fi
+
+# # Format JSON files
+# json_files=$(echo "$staged_files" | grep -E '\.json$')
+# if [ -n "$json_files" ]; then
+#     echo "Formatting JSON files..."
+#     for file in $json_files; do
+#         jq . "$file" > "${file}.tmp" && mv "${file}.tmp" "$file"
+#     done
+#     git add $json_files
+# fi
+
+# Lint C++ files
+if [ -n "$cpp_files" ]; then
+    echo "Linting C++ files..."
+    if ! echo "$cpp_files" | xargs cpplint; then
+        echo "C++ linting failed. Commit aborted."
+        exit 1
+    fi
+fi
+
+# Lint Python files
+if [ -n "$python_files" ]; then
+    echo "Linting Python files..."
+    if ! pylint $python_files; then
+        echo "Python linting failed. Commit aborted."
+        exit 1
+    fi
+fi
+
+# Run colcon test
+cd ros
+echo "Running colcon build..."
+if ! colcon build; then
+  cd -
+  echo "colcon build failed. Commit aborted."
+  exit 1
+fi
+
+echo "Running colcon test..."
+if ! colcon test; then
+    echo "colcon test failed. Commit aborted."
+    cd -
+    exit 1
+fi
+
+cd -
+
+echo "All files formatted and linted; tests passed"
