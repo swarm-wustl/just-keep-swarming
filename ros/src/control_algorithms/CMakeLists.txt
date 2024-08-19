@@ -16,10 +16,14 @@ rosidl_generate_interfaces(${PROJECT_NAME} "action/MultiRobotPathPlan.action"
                            DEPENDENCIES geometry_msgs)
 
 # === Action Server ===
-add_library(action_server SHARED src/multi_robot_path_planner_action_server.cpp)
+set(ALGORITHM_SOURCES src/algorithms/astar.cpp)
+add_library(action_server SHARED src/multi_robot_path_planner_action_server.cpp
+                                 ${ALGORITHM_SOURCES})
 target_include_directories(
-  action_server PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                        $<INSTALL_INTERFACE:include>)
+  action_server
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+          $<INSTALL_INTERFACE:include>
+          ${CMAKE_CURRENT_SOURCE_DIR}/include/control_algorithms/algorithms)
 ament_target_dependencies(action_server "rclcpp" "rclcpp_action"
                           "rclcpp_components")
 rclcpp_components_register_node(
@@ -49,8 +53,22 @@ install(
 
 # --- necessary for using actions in same package in which they are defined
 rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME}
-                              "rosidl_typesupport_cpp") # ???
+                              "rosidl_typesupport_cpp")
 target_link_libraries(action_server "${cpp_typesupport_target}")
 target_link_libraries(action_client "${cpp_typesupport_target}")
+
+# === Testing ===
+if(BUILD_TESTING)
+  find_package(ament_cmake_gtest REQUIRED)
+  ament_add_gtest(${PROJECT_NAME}_astar_test test/astar_test.cpp)
+
+  target_include_directories(
+    ${PROJECT_NAME}_astar_test
+    PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+            $<INSTALL_INTERFACE:include>
+            ${CMAKE_CURRENT_SOURCE_DIR}/include/control_algorithms/algorithms)
+
+  target_link_libraries(${PROJECT_NAME}_astar_test action_server)
+endif()
 
 ament_package()

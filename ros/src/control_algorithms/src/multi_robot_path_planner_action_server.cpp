@@ -1,6 +1,7 @@
 // Copyright 2024 Sebastian Theiler
 #include "control_algorithms/multi_robot_path_planner_action_server.hpp"
 
+#include "control_algorithms/algorithms/astar.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
@@ -52,6 +53,26 @@ void MultiRobotPathPlannerActionServer::execute(
   const auto goal = goal_handle->get_goal();
   auto feedback = std::make_shared<MultiRobotPathPlan::Feedback>();
   auto result = std::make_shared<MultiRobotPathPlan::Result>();
+
+  Cell startCell = {0, 0};
+  Cell goalCell = {95, 95};
+  vector<vector<int>> map;
+  for (int i = 0; i < 100; i++) {
+    vector<int> row;
+    for (int j = 0; j < 100; j++) {
+      /*if (i > 1 && i < 8 && j > 1 && j < 8) {*/
+      if (((i << j) * 1103515245 + 12345) % RAND_MAX + 1 > RAND_MAX / 1.3) {
+        /*if (j == 100 - i && i > 2 && j && 2) {*/
+        row.push_back(1);
+      } else {
+        row.push_back(0);
+      }
+    }
+    map.push_back(row);
+  }
+  vector<control_algorithms::Cell> path =
+      control_algorithms::astar(startCell, goalCell, map);
+  if (path.size() == 0) RCLCPP_INFO(this->get_logger(), "No path found");
 
   int i = 0;
   while (i < 100) {
