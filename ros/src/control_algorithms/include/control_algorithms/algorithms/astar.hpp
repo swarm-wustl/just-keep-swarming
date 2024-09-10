@@ -5,6 +5,7 @@
 
 #include <functional>
 #include <unordered_map>
+#include <utility>
 #include <vector>
 
 namespace control_algorithms {
@@ -35,11 +36,31 @@ struct ComparePriorityCell {
   bool operator()(const PriorityCell &a, const PriorityCell &b) const;
 };
 
+// Vector of cells with a priority value
+struct PriorityVectorCell {
+  vector<Cell> cells;
+  int priority;
+
+  PriorityVectorCell() : priority(0) {}
+};
+
+struct ComparePriorityVectorCell {
+  bool operator()(const PriorityVectorCell &a,
+                  const PriorityVectorCell &b) const;
+};
+
 // Print the map to stdout
 void print_map(const Map &map, const vector<Cell> &path);
 
+// Print a map with multiple robots (state) in it
+void print_multi_map(const Map &map, const vector<Cell> &state);
+
 // Get unoccupied cardinal neighbors of a cell in a map
 vector<Cell> get_neighbors(const Map &map, const Cell &pos);
+
+// Calculate the net neighbors function for a state
+vector<vector<Cell>> get_net_neighbors(const Map &map,
+                                       const vector<Cell> &state);
 
 // heuristic
 inline int h(const Cell &a, const Cell &b) {
@@ -50,8 +71,15 @@ inline int h(const Cell &a, const Cell &b) {
 vector<Cell> reconstruct_path(const unordered_map<Cell, Cell> &came_from,
                               Cell current);
 
+// Count the number of changes between two states of robots
+int count_moved(const vector<Cell> &original, const vector<Cell> &changed);
+
 // A* search algorithm
 vector<Cell> astar(const Cell &start, const Cell &goal, const Map &map);
+
+// S* search algorithm
+vector<vector<Cell>> sstar(const vector<Cell> &start, const vector<Cell> &goal,
+                           const Map &map);
 
 }  // namespace control_algorithms
 
@@ -63,4 +91,19 @@ struct hash<control_algorithms::Cell> {
     return std::hash<int>()(c.x) ^ (std::hash<int>()(c.y) << 1);
   }
 };
+
+// std::hash for vector<Cell>
+template <>
+struct hash<std::vector<control_algorithms::Cell>> {
+  std::size_t operator()(const vector<control_algorithms::Cell> &vc) const {
+    std::hash<int> hash_int;
+    std::size_t seed = 0;
+    for (const auto c : vc) {
+      std::size_t cell_hash = hash_int(c.x) ^ (hash_int(c.y) << 1);
+      seed ^= cell_hash + 0x9e3779b9 + (seed << 6) + (seed >> 2);
+    }
+    return seed;
+  }
+};
+
 }  // namespace std

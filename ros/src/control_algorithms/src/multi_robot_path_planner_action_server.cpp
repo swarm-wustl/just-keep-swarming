@@ -54,28 +54,45 @@ void MultiRobotPathPlannerActionServer::execute(
   auto feedback = std::make_shared<MultiRobotPathPlan::Feedback>();
   auto result = std::make_shared<MultiRobotPathPlan::Result>();
 
-  Cell startCell = {0, 0};
-  Cell goalCell = {95, 95};
-  vector<vector<int>> map;
-  for (int i = 0; i < 100; i++) {
-    vector<int> row;
-    for (int j = 0; j < 100; j++) {
-      /*if (i > 1 && i < 8 && j > 1 && j < 8) {*/
-      if (((i << j) * 1103515245 + 12345) % RAND_MAX + 1 > RAND_MAX / 1.3) {
-        /*if (j == 100 - i && i > 2 && j && 2) {*/
-        row.push_back(1);
-      } else {
-        row.push_back(0);
-      }
-    }
-    map.push_back(row);
-  }
-  vector<control_algorithms::Cell> path =
-      control_algorithms::astar(startCell, goalCell, map);
-  if (path.size() == 0) RCLCPP_INFO(this->get_logger(), "No path found");
+  // Map map = {
+  //     {1, 1, 1, 1, 1, 0, 0, 1, 1, 1},
+  //     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  //     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+  // };
+  // vector<Cell> robots = {{1, 0}, {1, 7}, {1, 9}};
+  // vector<Cell> goals = {{1, 9}, {1, 1}, {1, 0}};
+  Map map = {
+      {1, 1, 1, 1, 0, 0, 0, 0, 1, 1},  // (stop autowrap)
+      {0, 0, 0, 0, 0, 1, 0, 0, 0, 0},  // (stop autowrap)
+      {1, 1, 0, 1, 1, 1, 1, 1, 0, 1},  // (stop autowrap)
+      {0, 0, 0, 1, 1, 1, 1, 1, 0, 1},  // (stop autowrap)
+      {0, 1, 1, 1, 1, 1, 1, 1, 0, 1},  // (stop autowrap)
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // (stop autowrap)
+  };
+  vector<Cell> robots = {{1, 0}, {0, 4}, {4, 8}};  //, {5, 9}};
+  vector<Cell> goals = {{1, 9}, {5, 9}, {1, 0}};   //, {1, 1}};
+  // vector<vector<Cell>> net_neighbors = get_net_neighbors(map, robots);
+  // Map map = {
+  //     {0, 0, 0, 0, 0},  // (stop autowrap)
+  //     {0, 0, 0, 0, 0},  // (stop autowrap)
+  //     {0, 0, 0, 0, 0},  // (stop autowrap)
+  //     {0, 0, 0, 0, 0},  // (stop autowrap)
+  //     {0, 0, 0, 0, 0},  // (stop autowrap)
+  // };
+  // vector<Cell> robots = {{0, 0}, {1, 0}, {2, 0}, {3, 0}, {0, 4}};
+  // vector<Cell> goals = {{0, 4}, {1, 4}, {2, 4}, {3, 4}, {0, 0}};
+  print_multi_map(map, robots);
 
-  int i = 0;
-  while (i < 100) {
+  vector<vector<Cell>> plan = sstar(robots, goals, map);
+  for (auto &step : plan) {
+    for (size_t i = 0; i < step.size(); i++) {
+      RCLCPP_INFO(this->get_logger(), "Robot #%d -> (%d, %d)",
+                  static_cast<int>(i), step[i].x, step[i].y);
+    }
+  }
+
+  size_t i = 0;
+  while (i < plan.size()) {
     if (goal_handle->is_canceling()) {
       // result-> ...
       goal_handle->canceled(result);
@@ -83,9 +100,8 @@ void MultiRobotPathPlannerActionServer::execute(
       return;
     }
 
-    // do thing
-
-    RCLCPP_INFO(this->get_logger(), "Publish feedback");
+    print_multi_map(map, plan[i]);
+    RCLCPP_INFO(this->get_logger(), "===");
     goal_handle->publish_feedback(feedback);
     loop_rate.sleep();
     ++i;
