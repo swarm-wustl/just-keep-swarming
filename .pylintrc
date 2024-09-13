@@ -1,5 +1,7 @@
 [BASIC]
 
+extension-pkg-whitelist=cv2
+
 # Naming style matching correct constant names.
 const-naming-style=UPPER_CASE
 
@@ -14,3 +16,4 @@ good-names=i,
 
 [MESSAGES CONTROL]
 disable=missing-docstring,assigning-non-slot,unspecified-encoding,no-name-in-module
+
