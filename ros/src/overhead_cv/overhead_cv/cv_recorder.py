@@ -1,5 +1,7 @@
 import math
-from cv2 import cv2
+
+# pylint: disable=E1101
+import cv2
 
 import numpy as np
 
