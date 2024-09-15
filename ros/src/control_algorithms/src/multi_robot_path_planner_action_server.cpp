@@ -55,22 +55,42 @@ void MultiRobotPathPlannerActionServer::execute(
   auto result = std::make_shared<MultiRobotPathPlan::Result>();
 
   // Map map = {
-  //     {1, 1, 1, 1, 1, 0, 0, 1, 1, 1},
-  //     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-  //     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+  // {1, 1, 1, 1, 1, 0, 0, 1, 1, 1},
+  // {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  // {1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
   // };
-  // vector<Cell> robots = {{1, 0}, {1, 7}, {1, 9}};
-  // vector<Cell> goals = {{1, 9}, {1, 1}, {1, 0}};
+  // vector<Cell> robots = {{1, 0}, {1, 7}};
+  // vector<Cell> goals = {{1, 9}, {1, 1}};
+  // Map map = {
+  // {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  // {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  // };
+  // vector<Cell> robots = {{1, 0}, {1, 7}};
+  // vector<Cell> goals = {{1, 9}, {1, 1}};
   Map map = {
-      {1, 1, 1, 1, 0, 0, 0, 0, 1, 1},  // (stop autowrap)
-      {0, 0, 0, 0, 0, 1, 0, 0, 0, 0},  // (stop autowrap)
-      {1, 1, 0, 1, 1, 1, 1, 1, 0, 1},  // (stop autowrap)
-      {0, 0, 0, 1, 1, 1, 1, 1, 0, 1},  // (stop autowrap)
-      {0, 1, 1, 1, 1, 1, 1, 1, 0, 1},  // (stop autowrap)
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // (stop autowrap)
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
   };
-  vector<Cell> robots = {{1, 0}, {0, 4}, {4, 8}};  //, {5, 9}};
-  vector<Cell> goals = {{1, 9}, {5, 9}, {1, 0}};   //, {1, 1}};
+  // vector<Cell> robots = {{1, 0}, {1, 7}, {3, 6}, {2, 8}, {2, 2}};
+  // vector<Cell> goals = {{1, 9}, {1, 1}, {1, 0}, {0, 0}, {3, 7}};
+  vector<Cell> robots = {{1, 0}, {1, 7}, {3, 6}, {2, 8},
+                         {2, 2}, {0, 3}, {1, 2}, {1, 4}};
+  vector<Cell> goals = {{1, 9}, {1, 1}, {1, 0}, {0, 0},
+                        {3, 7}, {2, 7}, {2, 9}, {3, 9}};
+  // Map map = {
+  // {1, 1, 1, 1, 0, 0, 0, 0, 1, 1}, // (stop autowrap)
+  // {0, 0, 0, 0, 0, 1, 0, 0, 0, 0}, // (stop autowrap)
+  // {1, 1, 0, 1, 1, 1, 1, 1, 0, 1}, // (stop autowrap)
+  // {0, 0, 0, 1, 1, 1, 1, 1, 0, 1}, // (stop autowrap)
+  // {0, 1, 1, 1, 1, 1, 1, 1, 0, 1}, // (stop autowrap)
+  // {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, // (stop autowrap)
+  // };
+  // vector<Cell> robots = {{1, 0}, {0, 4}, {4, 8}};  //, {5, 9}};
+  // vector<Cell> goals = {{1, 9}, {5, 9}, {1, 0}};   //, {1, 1}};
+  // vector<Cell> robots = {{1, 0}, {4, 8}}; //, {5, 9}};
+  // vector<Cell> goals = {{1, 9}, {1, 0}};  //, {1, 1}};
   // vector<vector<Cell>> net_neighbors = get_net_neighbors(map, robots);
   // Map map = {
   //     {0, 0, 0, 0, 0},  // (stop autowrap)
@@ -83,7 +103,8 @@ void MultiRobotPathPlannerActionServer::execute(
   // vector<Cell> goals = {{0, 4}, {1, 4}, {2, 4}, {3, 4}, {0, 0}};
   print_multi_map(map, robots);
 
-  vector<vector<Cell>> plan = sstar(robots, goals, map);
+  /*vector<vector<Cell>> plan = sstar(robots, goals, map);*/
+  vector<vector<Cell>> plan = pplan(robots, goals, map);
   for (auto &step : plan) {
     for (size_t i = 0; i < step.size(); i++) {
       RCLCPP_INFO(this->get_logger(), "Robot #%d -> (%d, %d)",

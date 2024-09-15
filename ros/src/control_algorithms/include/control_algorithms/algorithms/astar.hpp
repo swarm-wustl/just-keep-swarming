@@ -74,11 +74,29 @@ vector<Cell> reconstruct_path(const unordered_map<Cell, Cell> &came_from,
 // Count the number of changes between two states of robots
 int count_moved(const vector<Cell> &original, const vector<Cell> &changed);
 
+// Update the occupancy map used in prioritized planning
+vector<vector<Cell>> update_map_occ(const vector<vector<Cell>> &map_occ,
+                                    const vector<Cell> &plan, int robot_index,
+                                    const vector<Cell> &start,
+                                    int time_offset = 0);
+
+// Check if a single start and end is invalid
+bool invalid_start(const Map &map, const Cell &goal, const Cell &start);
+
+// Check if a multi robot start and end is invalid
+bool invalid_multi_start(const Map &map, const vector<Cell> &start,
+                         const vector<Cell> &goal);
+
 // A* search algorithm
-vector<Cell> astar(const Cell &start, const Cell &goal, const Map &map);
+vector<Cell> astar(const Cell &start, const Cell &goal, const Map &map,
+                   const vector<vector<Cell>> &map_occ = {});
 
 // S* search algorithm
 vector<vector<Cell>> sstar(const vector<Cell> &start, const vector<Cell> &goal,
+                           const Map &map);
+
+// Prioritized planning search algorithm
+vector<vector<Cell>> pplan(const vector<Cell> &start, const vector<Cell> &goal,
                            const Map &map);
 
 }  // namespace control_algorithms
