@@ -57,7 +57,6 @@ vector<vector<Cell>> pplan(const vector<Cell> &start, const vector<Cell> &goal,
   for (size_t i = 0; i < n; i++) {
     Cell robot = start[i];
     Cell end = goal[i];
-
     vector<Cell> plan = astar(robot, end, map, map_occ);
     if (plan.empty()) {
       backlog.push(i);
@@ -78,7 +77,7 @@ vector<vector<Cell>> pplan(const vector<Cell> &start, const vector<Cell> &goal,
     size_t time_offset = 0;
     vector<Cell> plan = astar(robot, end, map, map_occ);
 
-    while (plan.empty() && time_offset < map_occ.size() - 1) {
+    while (plan.empty() && time_offset + 1 < map_occ.size()) {
       // If a plan couldn't be found, try delaying start
       // This isn't perfect, but it increases the number of valid solutions
       ++time_offset;

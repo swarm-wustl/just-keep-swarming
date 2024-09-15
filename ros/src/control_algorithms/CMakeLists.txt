@@ -61,15 +61,21 @@ target_link_libraries(action_client "${cpp_typesupport_target}")
 # === Testing ===
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
-  ament_add_gtest(${PROJECT_NAME}_astar_test test/astar_test.cpp)
 
-  target_include_directories(
-    ${PROJECT_NAME}_astar_test
-    PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-            $<INSTALL_INTERFACE:include>
-            ${CMAKE_CURRENT_SOURCE_DIR}/include/control_algorithms/algorithms)
+  # List of test names and corresponding source files
+  set(TESTS common_test astar_test sstar_test pplan_test)
 
-  target_link_libraries(${PROJECT_NAME}_astar_test action_server)
+  foreach(TEST ${TESTS})
+    ament_add_gtest(${PROJECT_NAME}_${TEST} test/${TEST}.cpp)
+
+    target_include_directories(
+      ${PROJECT_NAME}_${TEST}
+      PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+              $<INSTALL_INTERFACE:include>
+              ${CMAKE_CURRENT_SOURCE_DIR}/include/control_algorithms/algorithms)
+
+    target_link_libraries(${PROJECT_NAME}_${TEST} action_server)
+  endforeach()
 endif()
 
 ament_package()
