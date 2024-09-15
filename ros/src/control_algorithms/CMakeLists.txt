@@ -16,7 +16,8 @@ rosidl_generate_interfaces(${PROJECT_NAME} "action/MultiRobotPathPlan.action"
                            DEPENDENCIES geometry_msgs)
 
 # === Action Server ===
-set(ALGORITHM_SOURCES src/algorithms/astar.cpp)
+set(ALGORITHM_SOURCES src/algorithms/common.cpp src/algorithms/astar.cpp
+                      src/algorithms/sstar.cpp src/algorithms/pplan.cpp)
 add_library(action_server SHARED src/multi_robot_path_planner_action_server.cpp
                                  ${ALGORITHM_SOURCES})
 target_include_directories(

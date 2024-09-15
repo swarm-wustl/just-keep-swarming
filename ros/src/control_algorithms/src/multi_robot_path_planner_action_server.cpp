@@ -2,6 +2,9 @@
 #include "control_algorithms/multi_robot_path_planner_action_server.hpp"
 
 #include "control_algorithms/algorithms/astar.hpp"
+#include "control_algorithms/algorithms/common.hpp"
+#include "control_algorithms/algorithms/pplan.hpp"
+#include "control_algorithms/algorithms/sstar.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
@@ -107,7 +110,7 @@ void MultiRobotPathPlannerActionServer::execute(
   vector<vector<Cell>> plan = pplan(robots, goals, map);
   for (auto &step : plan) {
     for (size_t i = 0; i < step.size(); i++) {
-      RCLCPP_INFO(this->get_logger(), "Robot #%d -> (%d, %d)",
+      RCLCPP_INFO(this->get_logger(), "Robot #%d -> (%ld, %ld)",
                   static_cast<int>(i), step[i].x, step[i].y);
     }
   }
