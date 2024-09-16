@@ -15,9 +15,11 @@ class CameraFeed(Node):
     def __init__(self):
         super().__init__("camera_feed")
         self.bridge = CvBridge()
+
+        self.declare_parameter("delay", 0.001)
+        delay = self.get_parameter("delay").value
         self.cap = cv2.VideoCapture(0)
         self.publisher = self.create_publisher(Image, "/video", 10)
-        delay = 0.001
         self.timer = self.create_timer(delay, self.run)
 
     # gets the camera feed and publishes it to /video topic

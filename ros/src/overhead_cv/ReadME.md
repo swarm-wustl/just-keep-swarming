@@ -36,9 +36,11 @@ colcon build --packages-select camera_feed
 In /ros
 
 ```
-ros2 run camera_feed camera_feed
-ros2 run overhead_cv obs_qr --ros-args -p display:=[true or false]
+ros2 run camera_feed camera_feed --ros-args -p delay:=[0.002]
+ros2 run overhead_cv obs_qr --ros-args -p display:=[false]
 ```
+
+
 
 ## Testimg
 
