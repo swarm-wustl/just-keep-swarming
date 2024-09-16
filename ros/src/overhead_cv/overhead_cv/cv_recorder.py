@@ -105,8 +105,7 @@ class CVRecorder(Node):
         cv2.imshow(WINDOW_NAME, frame)
 
         cv2.imshow(MAP_WINDOW, map_image)
-        if cv2.waitKey(1) & 0xFF == ord("q"):
-            return
+        cv2.waitKey(1)
 
     def analyze_scan(self, decoded_info, points, dim, frame):
         packet_points = []
