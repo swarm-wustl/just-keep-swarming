@@ -3,7 +3,7 @@
 <package format="3">
   <name>camera_feed</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Use Open CV to read from camera feed to get and publishes to topic /video</description>
   <maintainer email="jaximus808@gmail.com">observer</maintainer>
   <license>TODO: License declaration</license>
   <test_depend>ament_copyright</test_depend>

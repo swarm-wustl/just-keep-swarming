@@ -3,7 +3,7 @@
 <package format="3">
   <name>overhead_cv</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Reads video feed from /video and calculates position from center given some reference conversion frame</description>
   <maintainer email="jaximus808@gmail.com">observer</maintainer>
   <license>Apache-2.0</license>
   <test_depend>ament_copyright</test_depend>
