@@ -39,3 +39,11 @@ In /ros
 ros2 run camera_feed camera_feed
 ros2 run overhead_cv obs_qr --ros-args -p display:=[true or false]
 ```
+
+## Testimg
+
+Tests can be run with the command below
+```
+colcon test --packages-select overhead_cv --event-handlers console_cohesion+
+```
+unit tests can be found in the /test directory for each package
