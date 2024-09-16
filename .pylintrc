@@ -1,4 +1,11 @@
+[TYPECHECK]
+
+ignored-modules = cv2
+
+
 [BASIC]
+
+extension-pkg-whitelist=cv2
 
 # Naming style matching correct constant names.
 const-naming-style=UPPER_CASE
@@ -12,5 +19,21 @@ good-names=i,
            _,
            package_name 
 
+[SIMILARITIES]
+# Minimum lines number of a similarity.
+min-similarity-lines=4
+
+# Ignore comments when computing similarities.
+ignore-comments=yes
+
+# Ignore docstrings when computing similarities.
+ignore-docstrings=yes
+
+# Ignore imports when computing similarities.
+ignore-imports=yes
+
+
+
 [MESSAGES CONTROL]
 disable=missing-docstring,assigning-non-slot,unspecified-encoding,no-name-in-module
+
