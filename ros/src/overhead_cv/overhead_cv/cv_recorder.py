@@ -85,7 +85,7 @@ class CVRecorder(Node):
         submit = []
         num = len(ids)
         for i in range(num):
-            submit = submit + [points[i][0], points[i][1]] + [ids[i]]
+            submit.extend([points[i][0], points[i][1], ids[i]])
 
         submit_data = Float32MultiArray()
         submit_data.data = submit
