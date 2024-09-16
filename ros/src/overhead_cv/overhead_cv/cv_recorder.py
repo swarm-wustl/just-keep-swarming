@@ -42,14 +42,7 @@ def calculate_pos(points, conversion, width, height):
         math.floor(((max_y - (max_y - min_y) / 2) / height) * conversion[1]),
     )
 
-    scaled_mesh_point = np.array(
-        [
-            ((points[0] / [width, height]) * conversion),
-            (points[1] / [width, height]) * conversion,
-            (points[2] / [width, height]) * conversion,
-            (points[3] / [width, height]) * conversion,
-        ]
-    )
+    scaled_mesh_point = points / [width, height] * conversion
 
     return point, scaled_mesh_point
 
