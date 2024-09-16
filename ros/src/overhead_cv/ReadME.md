@@ -22,14 +22,13 @@ Packages
 
 ```
 pip3 install opencv-python
-
-sudo apt install ros-humble-navigation2 ros-humble-nav2-bringup ros-humble-twist-mux ros-humble-slam-toolbox ros-humble-gazebo-ros2-control
 ```
 
 build in /ros directory
 
 ```
 colcon build --packages-select overhead_cv
+colcon build --packages-select camera_feed
 ```
 
 ## Running
@@ -37,5 +36,6 @@ colcon build --packages-select overhead_cv
 In /ros
 
 ```
-ros2 run overhead_cv obs_qr
+ros2 run camera_feed camera_feed
+ros2 run overhead_cv obs_qr --ros-args -p display:=[true or false]
 ```
