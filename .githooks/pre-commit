@@ -117,8 +117,8 @@ if command_exists "colcon"; then
         cd -
         exit 1
     fi
-fi
 
-cd /
+    cd -
+fi
 
 echo "All files formatted and linted; tests passed"
