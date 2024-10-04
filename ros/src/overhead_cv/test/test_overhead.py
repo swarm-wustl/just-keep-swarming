@@ -4,7 +4,6 @@ import numpy as np
 
 
 def test_calc_pos():
-    print("EMWO")
     tests = [
         {
             "input": [
