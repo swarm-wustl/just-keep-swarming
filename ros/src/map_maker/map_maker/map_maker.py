@@ -14,10 +14,14 @@ class MapMaker(Node):
     def __init__(self):
         super().__init__("map_maker")
         self.map_meta_client = self.create_client(CamMeta, "cam_meta_data")
+
         while not self.map_meta_client.wait_for_service(timeout_sec=1.0):
             self.get_logger().info("waiting for cam node")
+
         future = self.get_request()
+
         rclpy.spin_until_future_complete(self, future)
+
         response = future.result()
 
         self.robot_pos_sub = self.create_subscription(
@@ -29,7 +33,7 @@ class MapMaker(Node):
 
         self.map_size_update = self.create_subscription(
             msg_type=Float32MultiArray,
-            topic="/multi_array_pos",
+            topic="/img_shape",
             callback=self.set_map,
             qos_profile=10,
         )
