@@ -36,7 +36,9 @@ def calculate_pos(points):
 
 
 def update_map(og_map: OccupancyGrid, point, val):
-
+    if point[0] >= og_map.info.width or point[1] >= og_map.info.height:
+        print("invalid point")
+        return
     og_map.data[point[1] * og_map.info.width + point[0]] = val
 
 
