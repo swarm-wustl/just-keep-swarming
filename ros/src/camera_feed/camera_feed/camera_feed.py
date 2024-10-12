@@ -4,6 +4,7 @@ import rclpy
 import rclpy.exceptions
 import rclpy.executors
 import rclpy.logging
+
 from rclpy.node import Node
 
 from sensor_msgs.msg import Image
@@ -72,7 +73,7 @@ class CameraFeed(Node):
     def __init__(self):
         super().__init__("camera_feed")
         self.bridge = CvBridge()
-
+        
         self.cam_data = CamData(self)
 
         if self.cam_data.focal_length <= 0 or self.cam_data.cam_height <= 0:

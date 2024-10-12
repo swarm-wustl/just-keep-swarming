@@ -10,9 +10,11 @@
   <test_depend>ament_flake8</test_depend>
   <test_depend>ament_pep257</test_depend>
   <test_depend>python3-pytest</test_depend>
+
   <build_depend>shared_types</build_depend>
   <exec_depend>shared_types</exec_depend>
   <depend>std_srvs</depend>
+  
   <export>
     <build_type>ament_python</build_type>
   </export>
