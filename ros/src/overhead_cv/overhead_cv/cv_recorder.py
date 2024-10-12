@@ -90,7 +90,7 @@ class CVRecorder(Node):
         submit_data = Float32MultiArray()
         submit_data.data = submit
 
-        self.poses_emit.publish((submit_data))
+        self.poses_emit.publish(submit_data)
 
     def display_images(self, map_image, frame):
         for point in self.robot_points:
