@@ -112,7 +112,7 @@ class MapMaker(Node):
         }
         self.og_map = OccupancyGrid
         self.og_map.data = []
-        self.cam_data = [self.cam_data["focal_length"], self.cam_data["cam_height"]]
+        self.cam_data = [response.focal_length, response.cam_height]
 
         meta_data = MapMetaData()
         meta_data.resolution = resolution
