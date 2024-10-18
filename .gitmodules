@@ -1,0 +1,4 @@
+[submodule "micro_ros_espidf_component"]
+	path = embedded/esp/components/micro_ros_espidf_component
+	url = https://github.com/micro-ROS/micro_ros_espidf_component
+	branch = humble
