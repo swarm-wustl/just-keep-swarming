@@ -1,0 +1,18 @@
+Pi2: 
+  IP Address: 
+  MAC Address: 
+
+Personal Computer Key Generation Instructions: 
+ssh-keygen -t rsa -b 4096
+
+
+Seb
+SHA256:I7EmDgFvNwp5+4dPUkK51wt5Sr98SA/ZYx3rJ7JiB2k froga@The-Hyperdrive
+
+Kaiyuan Kang
+SHA256:E6w3zXudtYdD/O58pE0dL+ZUwHLT6jUqUrM+8+hG83Q kaiyuan kang@LAPTOP-OIE84GIG
+
+Minh Nguyen
+SHA256:S5Cctn4IxXqcl0Af6CdFRjQ4dPQ9aplQnunvSSRaZC0 17mng@MinhsLaptop
+
+
