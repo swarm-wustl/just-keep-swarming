@@ -13,41 +13,81 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
 rosidl_generate_interfaces(${PROJECT_NAME} "action/MultiRobotPathPlan.action"
-                           DEPENDENCIES geometry_msgs)
+                           "action/Assemble.action" DEPENDENCIES geometry_msgs)
 
-# === Action Server ===
 set(ALGORITHM_SOURCES src/algorithms/common.cpp src/algorithms/astar.cpp
                       src/algorithms/sstar.cpp src/algorithms/pplan.cpp)
-add_library(action_server SHARED src/multi_robot_path_planner_action_server.cpp
-                                 ${ALGORITHM_SOURCES})
+
+# === MRPP Action Server ===
+add_library(mrpp_action_server SHARED
+            src/multi_robot_path_planner_action_server.cpp ${ALGORITHM_SOURCES})
+
 target_include_directories(
-  action_server
+  mrpp_action_server
   PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
           $<INSTALL_INTERFACE:include>
           ${CMAKE_CURRENT_SOURCE_DIR}/include/control_algorithms/algorithms)
-ament_target_dependencies(action_server "rclcpp" "rclcpp_action"
+ament_target_dependencies(mrpp_action_server "rclcpp" "rclcpp_action"
                           "rclcpp_components")
 rclcpp_components_register_node(
-  action_server PLUGIN "control_algorithms::MultiRobotPathPlannerActionServer"
-  EXECUTABLE multi_robot_path_planner_action_server)
+  mrpp_action_server PLUGIN
+  "control_algorithms::MultiRobotPathPlannerActionServer" EXECUTABLE
+  multi_robot_path_planner_action_server)
 install(
-  TARGETS action_server
+  TARGETS mrpp_action_server
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
 
-# === Action Client ===
-add_library(action_client SHARED src/demo_mrpp_client.cpp)
+# === Assembler Action Server ===
+add_library(asm_action_server SHARED src/assembler_action_server.cpp
+                                     src/algorithms/assemble_graph.cpp)
 target_include_directories(
-  action_client PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
-                        $<INSTALL_INTERFACE:include>)
-ament_target_dependencies(action_client "rclcpp" "rclcpp_action"
+  asm_action_server
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+          $<INSTALL_INTERFACE:include>
+          ${CMAKE_CURRENT_SOURCE_DIR}/include/control_algorithms/algorithms)
+ament_target_dependencies(asm_action_server "rclcpp" "rclcpp_action"
                           "rclcpp_components")
 rclcpp_components_register_node(
-  action_client PLUGIN "control_algorithms::MRPPActionClient" EXECUTABLE
+  asm_action_server PLUGIN "control_algorithms::AssemblerActionServer"
+  EXECUTABLE assembler_action_server)
+install(
+  TARGETS asm_action_server
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin)
+
+# === MRPP Action Client ===
+add_library(mrpp_action_client SHARED src/demo_mrpp_client.cpp)
+target_include_directories(
+  mrpp_action_client
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+          $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(mrpp_action_client "rclcpp" "rclcpp_action"
+                          "rclcpp_components")
+rclcpp_components_register_node(
+  mrpp_action_client PLUGIN "control_algorithms::MRPPActionClient" EXECUTABLE
   demo_mrpp_action_client)
 install(
-  TARGETS action_client
+  TARGETS mrpp_action_client
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION BIN)
+
+# === Assembler Action Client ===
+add_library(assembler_action_client SHARED src/demo_assembler_client.cpp)
+target_include_directories(
+  assembler_action_client
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+          $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(assembler_action_client "rclcpp" "rclcpp_action"
+                          "rclcpp_components")
+rclcpp_components_register_node(
+  assembler_action_client PLUGIN "control_algorithms::AssemblerActionClient"
+  EXECUTABLE demo_assembler_action_client)
+install(
+  TARGETS assembler_action_client
   ARCHIVE DESTINATION lib
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION BIN)
@@ -55,15 +95,17 @@ install(
 # --- necessary for using actions in same package in which they are defined
 rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME}
                               "rosidl_typesupport_cpp")
-target_link_libraries(action_server "${cpp_typesupport_target}")
-target_link_libraries(action_client "${cpp_typesupport_target}")
+target_link_libraries(mrpp_action_server "${cpp_typesupport_target}")
+target_link_libraries(mrpp_action_client "${cpp_typesupport_target}")
+target_link_libraries(asm_action_server "${cpp_typesupport_target}")
+target_link_libraries(assembler_action_client "${cpp_typesupport_target}")
 
 # === Testing ===
 if(BUILD_TESTING)
   find_package(ament_cmake_gtest REQUIRED)
 
   # List of test names and corresponding source files
-  set(TESTS common_test astar_test sstar_test pplan_test)
+  set(TESTS common_test astar_test sstar_test pplan_test assemble_graph_test)
 
   foreach(TEST ${TESTS})
     ament_add_gtest(${PROJECT_NAME}_${TEST} test/${TEST}.cpp)
@@ -74,7 +116,8 @@ if(BUILD_TESTING)
               $<INSTALL_INTERFACE:include>
               ${CMAKE_CURRENT_SOURCE_DIR}/include/control_algorithms/algorithms)
 
-    target_link_libraries(${PROJECT_NAME}_${TEST} action_server)
+    target_link_libraries(${PROJECT_NAME}_${TEST} asm_action_server
+                          mrpp_action_server)
   endforeach()
 endif()
 
