@@ -1,1 +1,6 @@
 Pi2: 
+  IP Address: 
+  MAC Address: 
+
+Personal Computer Key Generation Instructions: 
+ssh-keygen -t rsa
