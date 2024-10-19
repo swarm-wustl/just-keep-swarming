@@ -3,7 +3,7 @@ Pi2:
   MAC Address: 
 
 Personal Computer Key Generation Instructions: 
-ssh-keygen -t rsa
+ssh-keygen -t rsa -b 4096
 
 
 Seb
