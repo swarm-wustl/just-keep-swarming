@@ -3,7 +3,7 @@
 <package format="3">
   <name>simulation</name>
   <version>0.0.0</version>
-  <description>TODO: Package description</description>
+  <description>Gazebo simulation</description>
   <maintainer email="25444757+sebtheiler@users.noreply.github.com">sebtheiler</maintainer>
   <license>TODO: License declaration</license>
   <test_depend>ament_copyright</test_depend>

@@ -93,6 +93,7 @@ vector<vector<Cell>> pplan(const vector<Cell> &start, const vector<Cell> &goal,
     }
 
     map_occ = update_map_occ(map_occ, plan, i, start, time_offset);
+    ++retry_count;
   }
 
   if (!backlog.empty()) {

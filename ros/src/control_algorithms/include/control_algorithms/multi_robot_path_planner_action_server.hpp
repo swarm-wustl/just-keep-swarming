@@ -9,6 +9,11 @@
 
 namespace control_algorithms {
 
+enum MultiRobotPathPlannerActionServerErrorCode {
+  NUM_GOAL_NUM_ROBOTS_MISMATCH,
+  FAILED_TO_PLAN
+};
+
 class MultiRobotPathPlannerActionServer : public rclcpp::Node {
  public:
   using MultiRobotPathPlan = control_algorithms::action::MultiRobotPathPlan;

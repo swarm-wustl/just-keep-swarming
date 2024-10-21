@@ -10,7 +10,7 @@ using Map = vector<vector<int>>;
 
 // Cell containing an XY position
 struct Cell {
-  size_t x, y;
+  int x, y;
 
   Cell() : x(0), y(0) {}
   Cell(size_t x, size_t y) : x(x), y(y) {}

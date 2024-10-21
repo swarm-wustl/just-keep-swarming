@@ -3,6 +3,6 @@ string goal_topology
 uint16 error_code
 string error_msg
 ---
-geometry_msgs/PoseArray current_poses
+GridCell[] current_poses
 builtin_interfaces/Duration navigation_time
 int32 num_goals_reached

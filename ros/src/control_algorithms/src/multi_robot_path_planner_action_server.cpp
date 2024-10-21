@@ -31,6 +31,7 @@ rclcpp_action::GoalResponse MultiRobotPathPlannerActionServer::handle_goal(
     std::shared_ptr<const MultiRobotPathPlan::Goal> goal) {
   RCLCPP_INFO(this->get_logger(), "Received goal request");
   (void)uuid;
+  (void)goal;
   return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
 }
 
@@ -57,24 +58,39 @@ void MultiRobotPathPlannerActionServer::execute(
   auto feedback = std::make_shared<MultiRobotPathPlan::Feedback>();
   auto result = std::make_shared<MultiRobotPathPlan::Result>();
 
-  Map map = {
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  // Fake starting positions in place of state estimation
+  vector<Cell> robots = {
+      {0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5},
+      {5, 0}, {4, 0}, {3, 0}, {2, 0}, {1, 0},
   };
-  vector<Cell> robots = {{1, 0}, {1, 7}, {3, 6}, {2, 8},
-                         {2, 2}, {0, 3}, {1, 2}, {1, 4}};
-  vector<Cell> goals = {{1, 9}, {1, 1}, {1, 0}, {0, 0},
-                        {3, 7}, {2, 7}, {2, 9}, {3, 9}};
 
+  vector<Cell> goals;
+  for (auto goal_cell : goal->goal_cells) {
+    goals.emplace_back(goal_cell.x, goal_cell.y);
+  }
+
+  if (robots.size() != goals.size()) {
+    result->error_code = NUM_GOAL_NUM_ROBOTS_MISMATCH;
+    result->error_msg = "Number of goals does not equal number of robots";
+    goal_handle->abort(result);
+  }
+
+  // Fake map in place of occupancy grid
+  Map map = {
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  };
+
+  auto start_time = this->now();
   /*vector<vector<Cell>> plan = sstar(robots, goals, map);*/
   vector<vector<Cell>> plan = pplan(robots, goals, map);
-  for (auto &step : plan) {
-    for (size_t i = 0; i < step.size(); i++) {
-      RCLCPP_INFO(this->get_logger(), "Robot #%d -> (%ld, %ld)",
-                  static_cast<int>(i), step[i].x, step[i].y);
-    }
+  if (plan.empty()) {
+    result->error_code = FAILED_TO_PLAN;
+    result->error_msg = "Failed to generate a plan";
+    goal_handle->abort(result);
   }
 
   size_t i = 0;
@@ -86,9 +102,17 @@ void MultiRobotPathPlannerActionServer::execute(
       return;
     }
 
-    print_multi_map(map, plan[i]);
-    RCLCPP_INFO(this->get_logger(), "===");
+    feedback->navigation_time = this->now() - start_time;
+    feedback->current_poses = {};
+    for (Cell &c : plan[i]) {
+      control_algorithms::msg::GridCell grid_cell_msg;
+      grid_cell_msg.x = c.x;
+      grid_cell_msg.y = c.y;
+
+      feedback->current_poses.push_back(grid_cell_msg);
+    }
     goal_handle->publish_feedback(feedback);
+
     loop_rate.sleep();
     ++i;
   }

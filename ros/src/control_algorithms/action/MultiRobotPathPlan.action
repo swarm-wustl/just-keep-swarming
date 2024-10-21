@@ -1,9 +1,9 @@
-geometry_msgs/PoseArray goal_poses
-int32[] robot_for_goal
+GridCell[] goal_cells
+int64[] robot_for_goal
 ---
 uint16 error_code
 string error_msg
 ---
-geometry_msgs/PoseArray current_poses
+GridCell[] current_poses
 builtin_interfaces/Duration navigation_time
-int32 num_goals_reached
+int64 num_goals_reached

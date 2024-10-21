@@ -1,6 +1,8 @@
 // Copyright 2024 Sebastian Theiler
 #include "control_algorithms/assembler_action_server.hpp"
 
+#include <string>
+
 #include "control_algorithms/algorithms/assemble_graph.hpp"
 #include "control_algorithms/algorithms/common.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -27,7 +29,11 @@ rclcpp_action::GoalResponse AssemblerActionServer::handle_goal(
     std::shared_ptr<const Assemble::Goal> goal) {
   RCLCPP_INFO(this->get_logger(), "Received goal request");
   (void)uuid;
-  return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+  if (goal->goal_topology == "MOBILE_MANIPULATOR" ||
+      goal->goal_topology == "WALKER")
+    return rclcpp_action::GoalResponse::ACCEPT_AND_EXECUTE;
+  else
+    return rclcpp_action::GoalResponse::REJECT;
 }
 
 rclcpp_action::CancelResponse AssemblerActionServer::handle_cancel(
@@ -52,14 +58,25 @@ void AssemblerActionServer::execute(
   auto feedback = std::make_shared<Assemble::Feedback>();
   auto result = std::make_shared<Assemble::Result>();
 
-  AdjMatrix adj_matrix = load_structure(MOBILE_MANIPULATOR, 11);
-  Cell root = {10, 10};
-  int root_n = 7;
-  int radius = 1;
-  vector<Cell> unfolded = unfold_graph(adj_matrix, root, root_n, radius);
-  for (Cell &c : unfolded) {
-    std::cout << "x " << c.x << "y " << c.y << std::endl;
+  std::string goal_topology = goal->goal_topology;
+  int num_robots = 11;  // TODO(sebtheiler): get this from some global state
+
+  StructureType topology;
+  if (goal_topology == "MOBILE_MANIPULATOR") {
+    topology = MOBILE_MANIPULATOR;
+  } else if (goal_topology == "WALKER") {
+    topology = WALKER;
+  } else {
+    result->error_code = 1;
+    result->error_msg = "Invalid topology";
+    goal_handle->abort(result);
   }
+
+  AdjMatrix adj_matrix = load_structure(topology, num_robots);
+  Cell root = {10, 10};
+  int root_n = 0;
+  int radius = 2;
+  vector<Cell> unfolded = unfold_graph(adj_matrix, root, root_n, radius);
 
   size_t i = 0;
   while (i < 42) {

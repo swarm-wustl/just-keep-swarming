@@ -1,9 +1,15 @@
 // Copyright 2024 Sebastian Theiler
 #include "control_algorithms/demo_mrpp_client.hpp"
 
+#include <vector>
+
+#include "control_algorithms/algorithms/assemble_graph.hpp"
+#include "control_algorithms/algorithms/common.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
 
 namespace control_algorithms {
+
+using std::vector;
 
 MRPPActionClient::MRPPActionClient(const rclcpp::NodeOptions &options)
     : Node("mrpp_action_client", options) {
@@ -28,8 +34,26 @@ void MRPPActionClient::send_goal() {
     rclcpp::shutdown();
   }
 
+  AdjMatrix adj_matrix = load_structure(WALKER, 11);
+  Cell root = {5, 5};
+  int root_n = 0;
+  int radius = 1;
+  vector<Cell> goals = unfold_graph(adj_matrix, root, root_n, radius);
+  for (auto c : goals) {
+    RCLCPP_INFO(this->get_logger(), "%d, %d", c.x, c.y);
+  }
+
+  /*vector<Cell> goals = {{2, 5}, {2, 3}, {1, 4}, {3, 3},*/
+  /*                      {3, 9}, {4, 7}, {2, 8}, {2, 1}};*/
+
   auto goal_msg = MultiRobotPathPlan::Goal();
-  // TODO(sebtheiler): populate goal msg
+  for (Cell c : goals) {
+    control_algorithms::msg::GridCell grid_cell_msg;
+    grid_cell_msg.x = c.x;
+    grid_cell_msg.y = c.y;
+
+    goal_msg.goal_cells.push_back(grid_cell_msg);
+  }
 
   RCLCPP_INFO(this->get_logger(), "Sending goal");
 
@@ -58,6 +82,21 @@ void MRPPActionClient::feedback_callback(
     GoalHandleMultiRobotPathPlan::SharedPtr,
     const std::shared_ptr<const MultiRobotPathPlan::Feedback> feedback) {
   RCLCPP_INFO(this->get_logger(), "Received feedback");
+  // Fake map in place of occupancy grid
+  Map map = {
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+  };
+
+  // Print progress
+  vector<Cell> state;
+  for (auto &gc : feedback->current_poses) {
+    state.emplace_back(gc.x, gc.y);
+  }
+  print_multi_map(map, state);
 }
 
 void MRPPActionClient::result_callback(

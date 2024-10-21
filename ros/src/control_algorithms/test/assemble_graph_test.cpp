@@ -8,14 +8,14 @@ namespace control_algorithms {
 using std::size_t;
 
 TEST(AdjMatrix, Initialize) {
-  size_t n_robots = 11;
+  int n_robots = 11;
   AdjMatrix adj_matrix = init_adj_matrix(n_robots);
   EXPECT_EQ(adj_matrix.size(), n_robots);
   EXPECT_EQ(adj_matrix[0].size(), n_robots);
 }
 
 TEST(AdjMatrix, ConnectRobots) {
-  size_t n_robots = 11;
+  int n_robots = 11;
   AdjMatrix adj_matrix = init_adj_matrix(n_robots);
   connect_robots(&adj_matrix, 0, 1, FRONT, BACK);
   EXPECT_EQ(adj_matrix[0][1], FRONT);
@@ -23,22 +23,22 @@ TEST(AdjMatrix, ConnectRobots) {
 }
 
 TEST(AdjMatrix, LoadStructureWalker) {
-  size_t n_robots = 11;
+  int n_robots = 11;
   AdjMatrix adj_matrix = load_structure(MOBILE_MANIPULATOR, n_robots);
 }
 
 TEST(AdjMatrix, LoadStructureMobileManipulator) {
-  size_t n_robots = 11;
+  int n_robots = 11;
   AdjMatrix adj_matrix = load_structure(MOBILE_MANIPULATOR, n_robots);
 }
 
 TEST(StructureGraph, VertexHeight) {
-  size_t n_robots = 5;
+  int n_robots = 5;
   AdjMatrix adj_matrix = init_adj_matrix(n_robots);
 }
 
 TEST(StructureLoading, MobileManipulator) {
-  size_t num_robots = 10;
+  int num_robots = 10;
   AdjMatrix mat = load_structure(MOBILE_MANIPULATOR, num_robots);
 
   EXPECT_EQ(mat.size(), num_robots);
@@ -62,7 +62,7 @@ TEST(StructureLoading, MobileManipulator) {
 }
 
 TEST(StructureLoading, Walker) {
-  size_t num_robots = 11;
+  int num_robots = 11;
   AdjMatrix mat = load_structure(WALKER, num_robots);
 
   EXPECT_EQ(mat.size(), num_robots);
@@ -110,7 +110,7 @@ TEST(HeightCalculation, CalcHeights) {
 }
 
 TEST(GraphUnfolding, UnfoldGraph) {
-  size_t num_robots = 11;
+  int num_robots = 11;
   AdjMatrix adj_matrix = load_structure(WALKER, num_robots);
 
   Cell root = {10, 10};

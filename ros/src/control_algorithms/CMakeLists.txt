@@ -12,11 +12,13 @@ find_package(rclcpp_components REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(geometry_msgs REQUIRED)
 
-rosidl_generate_interfaces(${PROJECT_NAME} "action/MultiRobotPathPlan.action"
-                           "action/Assemble.action" DEPENDENCIES geometry_msgs)
+rosidl_generate_interfaces(
+  ${PROJECT_NAME} "action/MultiRobotPathPlan.action" "action/Assemble.action"
+  "msg/GridCell.msg" DEPENDENCIES geometry_msgs)
 
-set(ALGORITHM_SOURCES src/algorithms/common.cpp src/algorithms/astar.cpp
-                      src/algorithms/sstar.cpp src/algorithms/pplan.cpp)
+set(ALGORITHM_SOURCES
+    src/algorithms/common.cpp src/algorithms/astar.cpp src/algorithms/sstar.cpp
+    src/algorithms/pplan.cpp src/algorithms/assemble_graph.cpp)
 
 # === MRPP Action Server ===
 add_library(mrpp_action_server SHARED
@@ -59,7 +61,10 @@ install(
   RUNTIME DESTINATION bin)
 
 # === MRPP Action Client ===
-add_library(mrpp_action_client SHARED src/demo_mrpp_client.cpp)
+add_library(
+  mrpp_action_client SHARED
+  src/demo_mrpp_client.cpp src/algorithms/assemble_graph.cpp
+  src/algorithms/common.cpp)
 target_include_directories(
   mrpp_action_client
   PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
