@@ -16,13 +16,13 @@
 
 #include "receiver.h"
 
-#include <my_custom_message/my_custom_message/msg/my_custom_message.h>
+#include <drone_data/drone_data/msg/robot_position.h>
 
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){printf("Failed status on line %d: %d. Aborting.\n",__LINE__,(int)temp_rc);vTaskDelete(NULL);}}
 
 void subscription_callback(const void *msgin) {
-    const my_custom_message__msg__MyCustomMessage *msg = (const my_custom_message__msg__MyCustomMessage *)msgin;
-    printf("Received: %d\n",  (int)msg->byte_test);
+    const drone_data__msg__RobotPosition *msg = (const drone_data__msg__RobotPosition *)msgin;
+    printf("Received: %d\n",  (int)msg->x);
 }
 
 static void basic_task(void *param) {
@@ -51,12 +51,12 @@ static void basic_task(void *param) {
     RCCHECK(rclc_subscription_init_default(
 		&subscriber,
 		&node,
-		ROSIDL_GET_MSG_TYPE_SUPPORT(my_custom_message, msg, MyCustomMessage),
+		ROSIDL_GET_MSG_TYPE_SUPPORT(drone_data, msg, RobotPosition),
 		"esp32_example_subscriber"
     ));
 
     // create message
-    my_custom_message__msg__MyCustomMessage msg;
+    drone_data__msg__RobotPosition msg;
 
     // create executor with a single handle
     rclc_executor_t executor;
@@ -73,18 +73,6 @@ static void basic_task(void *param) {
 
     // run the executor forever (continuously receive messages)
     rclc_executor_spin(&executor);
-
-    /*struct queue_data sending_data;
-
-    sending_data.id = 1;
-    sending_data.x = 25;
-    sending_data.y = -30;
-
-    while (1) {
-        printf("sending task data in 3 seconds...\n");
-        vTaskDelay(3000 / portTICK_PERIOD_MS);
-        push_to_queue(sending_data);
-    }*/
 }
 
 void app_main(void)
