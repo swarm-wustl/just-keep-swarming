@@ -21,8 +21,8 @@
 #define RCCHECK(fn) { rcl_ret_t temp_rc = fn; if((temp_rc != RCL_RET_OK)){printf("Failed status on line %d: %d. Aborting.\n",__LINE__,(int)temp_rc);vTaskDelete(NULL);}}
 
 void subscription_callback(const void *msgin) {
-    const std_msgs__msg__Int32 *msg = (const std_msgs__msg__Int32 *)msgin;
-    printf("Received: %d\n",  (int)msg->data);
+    const my_custom_message__msg__MyCustomMessage *msg = (const my_custom_message__msg__MyCustomMessage *)msgin;
+    printf("Received: %d\n",  (int)msg->byte_test);
 }
 
 static void basic_task(void *param) {
@@ -51,13 +51,12 @@ static void basic_task(void *param) {
     RCCHECK(rclc_subscription_init_default(
 		&subscriber,
 		&node,
-		ROSIDL_GET_MSG_TYPE_SUPPORT(std_msgs, msg, Int32),
+		ROSIDL_GET_MSG_TYPE_SUPPORT(my_custom_message, msg, MyCustomMessage),
 		"esp32_example_subscriber"
     ));
 
     // create message
-    // TODO: this type is deprecated
-    std_msgs__msg__Int32 msg;
+    my_custom_message__msg__MyCustomMessage msg;
 
     // create executor with a single handle
     rclc_executor_t executor;
