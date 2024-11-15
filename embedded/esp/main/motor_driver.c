@@ -1,4 +1,4 @@
-#include "receiver.h"
+#include "motor_driver.h"
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
@@ -14,13 +14,13 @@ void push_to_queue(struct queue_data d) {
     }
 }
 
-void receiving_task() {
-    xQueue = xQueueCreate( 5, sizeof( struct queue_data ) );
+void motor_task(void *param) {
+    xQueue = xQueueCreate(5, sizeof(struct queue_data));
 
     while (1) {
         if (xQueue != NULL) {
             if (xQueueReceive(xQueue, &data, delay) == pdPASS) {
-                printf("received %d!\n", data.y);
+                printf("received %d!\n", data.left.dir);
             }
         }
     }
