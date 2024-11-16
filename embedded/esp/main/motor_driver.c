@@ -15,12 +15,27 @@ void push_to_queue(struct queue_data d) {
 }
 
 void motor_task(void *param) {
+    gpio_config_t io_conf;
+    io_conf.intr_type = GPIO_INTR_DISABLE;
+    io_conf.mode = GPIO_MODE_OUTPUT;
+    io_conf.pin_bit_mask = GPIO_BITMASK;
+    io_conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
+    io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
+    gpio_config(&io_conf);
+
     xQueue = xQueueCreate(5, sizeof(struct queue_data));
 
     while (1) {
         if (xQueue != NULL) {
             if (xQueueReceive(xQueue, &data, delay) == pdPASS) {
                 printf("received %d!\n", data.left.dir);
+
+                // Turns motor 1 to max speed
+                gpio_set_level(ENA, 1);
+
+                // Sets motor 1 to forward
+                gpio_set_level(IN1, 1);
+                gpio_set_level(IN2, 0);
             }
         }
     }
