@@ -7,7 +7,7 @@ static QueueHandle_t xQueue = NULL;
 static TickType_t delay = 10;
 static struct queue_data data;
 
-void push_to_queue(struct queue_data d) {
+void push_to_motor_queue(struct queue_data d) {
     // TODO: error handle
     if (xQueue != NULL) {
         xQueueSendToBack(xQueue, (void *)&d, delay);
@@ -33,9 +33,11 @@ void motor_task(void *param) {
                 // Turns motor 1 to max speed
                 gpio_set_level(ENA, 1);
 
-                // Sets motor 1 to forward
-                gpio_set_level(IN1, 1);
-                gpio_set_level(IN2, 0);
+                // Sets motor 1 to the proper direction
+                enum direction dir = data.left.dir;
+
+                gpio_set_level(IN1, dir == FORWARD ? 1 : 0);
+                gpio_set_level(IN2, dir == REVERSE ? 1 : 0);
             }
         }
     }

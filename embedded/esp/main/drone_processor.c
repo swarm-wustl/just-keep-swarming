@@ -19,15 +19,21 @@
 #include "util.h"
 #include "motor_driver.h"
 
+static int counter = 0;
+
 static void drone_callback(const void *msgin) {
     const drone_data__msg__RobotPosition *msg = (const drone_data__msg__RobotPosition *)msgin;
     printf("Received: %d\n",  (int)msg->current_pos.position.x);
 
     // TODO: data processing
+    ++counter;
+    if (counter == 10) {
+        counter = 0;
+    }
 
-    push_to_queue((struct queue_data){
+    push_to_motor_queue((struct queue_data){
         .left = (struct motor_command){
-            .dir = FORWARD,
+            .dir = counter < 5 ? FORWARD : REVERSE,
             .pwm_ratio = 0.75
         },
         .right = (struct motor_command){

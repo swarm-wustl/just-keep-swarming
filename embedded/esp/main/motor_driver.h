@@ -27,5 +27,5 @@ struct queue_data {
     struct motor_command right;
 };
 
-void push_to_queue(struct queue_data d);
+void push_to_motor_queue(struct queue_data d);
 void motor_task(void *param);
