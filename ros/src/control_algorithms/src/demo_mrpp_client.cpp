@@ -84,8 +84,8 @@ void MRPPActionClient::feedback_callback(
   RCLCPP_INFO(this->get_logger(), "Received feedback");
   // Fake map in place of occupancy grid
   Map map = {
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 1, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -97,6 +97,8 @@ void MRPPActionClient::feedback_callback(
     state.emplace_back(gc.x, gc.y);
   }
   print_multi_map(map, state);
+  RCLCPP_INFO(this->get_logger(), "%ld robots have reached their goal",
+              feedback->num_goals_reached);
 }
 
 void MRPPActionClient::result_callback(

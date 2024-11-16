@@ -65,7 +65,7 @@ void MultiRobotPathPlannerActionServer::execute(
   };
 
   vector<Cell> goals;
-  for (auto goal_cell : goal->goal_cells) {
+  for (const auto &goal_cell : goal->goal_cells) {
     goals.emplace_back(goal_cell.x, goal_cell.y);
   }
 
@@ -77,8 +77,8 @@ void MultiRobotPathPlannerActionServer::execute(
 
   // Fake map in place of occupancy grid
   Map map = {
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 1, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -93,12 +93,20 @@ void MultiRobotPathPlannerActionServer::execute(
     goal_handle->abort(result);
   }
 
+  for (int i = 0; i < plan.size(); i++) {
+    RCLCPP_INFO(this->get_logger(), "robot %d", i);
+    for (auto c : plan[i]) {
+      RCLCPP_INFO(this->get_logger(), "(%d, %d)", c.x, c.y);
+    }
+  }
+
   size_t i = 0;
   while (i < plan.size()) {
     if (goal_handle->is_canceling()) {
-      // result-> ...
+      result->error_code = CANCELED;
+      result->error_msg = "Canceled";
       goal_handle->canceled(result);
-      RCLCPP_INFO(this->get_logger(), "Goal canceled");
+      RCLCPP_INFO(this->get_logger(), "Planning canceled");
       return;
     }
 
@@ -111,6 +119,13 @@ void MultiRobotPathPlannerActionServer::execute(
 
       feedback->current_poses.push_back(grid_cell_msg);
     }
+
+    int num_goals_reached = 0;
+    for (size_t n = 0; n < goals.size(); n++) {
+      if (plan[i][n] == goals[n]) ++num_goals_reached;
+    }
+
+    feedback->num_goals_reached = num_goals_reached;
     goal_handle->publish_feedback(feedback);
 
     loop_rate.sleep();
@@ -118,9 +133,9 @@ void MultiRobotPathPlannerActionServer::execute(
   }
 
   if (rclcpp::ok()) {
-    // result->...
+    result->error_code = SUCCESS;
     goal_handle->succeed(result);
-    RCLCPP_INFO(this->get_logger(), "Goal succeeded");
+    RCLCPP_INFO(this->get_logger(), "Planning succeeded");
   }
 }
 

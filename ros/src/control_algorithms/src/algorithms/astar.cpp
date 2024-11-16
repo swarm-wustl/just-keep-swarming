@@ -89,13 +89,17 @@ vector<Cell> astar(const Cell &start, const Cell &goal, const Map &map,
       // time (or ever)
       time_step = reconstruct_path(came_from, current).size();
       vector<Cell> occ;
-      if (time_step < static_cast<int>(map_occ.size()) - 1) {
-        occ = map_occ[time_step];
-        occ.insert(occ.end(), map_occ[time_step + 1].begin(),
-                   map_occ[time_step + 1].end());
+
+      if (time_step < map_occ.size()) {
+        // TODO(sebtheiler): this should probably not be - 2. There is probably
+        // a bug here
+        for (size_t i = time_step - 2; i < map_occ.size(); i++) {
+          occ.insert(occ.end(), map_occ[i].begin(), map_occ[i].end());
+        }
       } else {
         occ = map_occ.back();
       }
+
       for (const Cell &c : occ) {
         temp[c.x][c.y] = 1;
       }

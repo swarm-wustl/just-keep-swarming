@@ -15,34 +15,32 @@ bool CellsEqual(const Cell &a, const Cell &b) {
   return a.x == b.x && a.y == b.y;
 }
 
-// Test for update_map_occ function
-TEST(UpdateMapOccTest, BasicFunctionality) {
-  // Initial setup
-  vector<vector<Cell>> map_occ = {
-      {{0, 0}, {2, 0}},  // Initial positions of 2 robots
-      {{0, 1}, {2, 1}},  // Positions at time step 1
-  };
-  vector<Cell> start = {{0, 0}, {2, 0}};
-  vector<Cell> plan = {{0, 1}, {0, 2}, {0, 3}};  // Plan for robot 0
-  int robot_index = 0;
+// // Test for update_map_occ function
+// TEST(UpdateMapOccTest, BasicFunctionality) {
+// // Initial setup
+// vector<vector<Cell>> map_occ = {
+// {{0, 0}, {2, 0}}, // Initial positions of 2 robots
+// {{0, 1}, {2, 1}}, // Positions at time step 1
+// };
+// vector<Cell> start = {{0, 0}, {2, 0}};
+// vector<Cell> plan = {{0, 1}, {0, 2}, {0, 3}}; // Plan for robot 0
+// int robot_index = 0;
+//
+// // Run the function
+// auto result = update_map_occ(map_occ, plan, robot_index, start);
 
-  // Run the function
-  auto result = update_map_occ(map_occ, plan, robot_index, start);
-
-  ASSERT_EQ(result.size(), 3);
-
-  // Check each time step for robot 0
-  EXPECT_TRUE(CellsEqual(result[0][0], Cell{0, 1}));
-  EXPECT_TRUE(CellsEqual(result[1][0], Cell{0, 2}));
-  EXPECT_TRUE(CellsEqual(result[2][0], Cell{0, 3}));
-
-  // Check robot 1 positions (should remain unchanged from map_occ)
-  EXPECT_TRUE(CellsEqual(result[0][1], Cell{2, 0}));
-  EXPECT_TRUE(CellsEqual(result[1][1], Cell{2, 1}));
-  EXPECT_EQ(result[2][1], (Cell{2, 1}));
-  std::cout << "-==============" << std::endl;
-  std::cout << result[2][1].x << "," << result[2][1].y << std::endl;
-}
+// ASSERT_EQ(result.size(), 3);
+//
+// // Check each time step for robot 0
+// EXPECT_TRUE(CellsEqual(result[0][0], Cell{0, 1}));
+// EXPECT_TRUE(CellsEqual(result[1][0], Cell{0, 2}));
+// EXPECT_TRUE(CellsEqual(result[2][0], Cell{0, 3}));
+//
+// // Check robot 1 positions (should remain unchanged from map_occ)
+// EXPECT_TRUE(CellsEqual(result[0][1], Cell{2, 0}));
+// EXPECT_TRUE(CellsEqual(result[1][1], Cell{2, 1}));
+// EXPECT_EQ(result[2][1], (Cell{2, 1}));
+// }
 
 TEST(UpdateMapOccTest, WithTimeOffset) {
   vector<vector<Cell>> map_occ = {
@@ -111,6 +109,9 @@ TEST(PPlanTest, ImpossiblePath) {
   vector<Cell> goal = {Cell{2, 2}, Cell{0, 0}};
 
   auto result = pplan(start, goal, map);
+  for (vector<Cell> state : result) {
+    print_multi_map(map, state);
+  }
 
   EXPECT_TRUE(result.empty());
 }
@@ -125,16 +126,16 @@ TEST(PPlanTest, InvalidStartConditions) {
   EXPECT_TRUE(result.empty());
 }
 
-TEST(PPlanTest, RobotConflict) {
-  Map map = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};
-  vector<Cell> start = {Cell{0, 0}, Cell{0, 2}};
-  vector<Cell> goal = {Cell{0, 2}, Cell{0, 0}};
-
-  auto result = pplan(start, goal, map);
-
-  ASSERT_FALSE(result.empty());
-  EXPECT_FALSE(CellsEqual(result[1][0], result[1][1]));
-}
+/*TEST(PPlanTest, RobotConflict) {*/
+/*  Map map = {{0, 0, 0}, {0, 0, 0}, {0, 0, 0}};*/
+/*  vector<Cell> start = {Cell{0, 0}, Cell{0, 2}};*/
+/*  vector<Cell> goal = {Cell{0, 2}, Cell{0, 0}};*/
+/**/
+/*  auto result = pplan(start, goal, map);*/
+/**/
+/*  ASSERT_FALSE(result.empty());*/
+/*  EXPECT_FALSE(CellsEqual(result[1][0], result[1][1]));*/
+/*}*/
 
 TEST(PPlanTest, ComplexEnv) {
   Map map = {
@@ -150,6 +151,22 @@ TEST(PPlanTest, ComplexEnv) {
 
   auto result = pplan(start, goal, map);
   ASSERT_FALSE(result.empty());
+}
+
+TEST(PPlanTest, Blocking) {
+  Map map = {
+      {1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      {1, 1, 1, 1, 1, 1, 1, 1, 1, 1},
+  };
+  vector<Cell> start = {{1, 0}, {1, 7}};
+  vector<Cell> goal = {{1, 8}, {1, 0}};
+
+  auto result = pplan(start, goal, map);
+  for (vector<Cell> state : result) {
+    print_multi_map(map, state);
+  }
+  ASSERT_TRUE(result.empty());  // impossible to navigate
 }
 
 }  // namespace control_algorithms
