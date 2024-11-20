@@ -23,6 +23,9 @@ fi
 echo "Installing Python packages..."
 pipx install black cmakelang cpplint
 
+# Reset terminal so changes take effect
+reset
+
 # Verify installations
 echo "Verifying installations..."
 
