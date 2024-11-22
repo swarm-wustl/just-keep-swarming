@@ -83,6 +83,7 @@ void MultiRobotPathPlannerActionServer::execute(
       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
       {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
   };
+  bool changed = Obstacle_Inflate(&map, 1);
 
   auto start_time = this->now();
   /*vector<vector<Cell>> plan = sstar(robots, goals, map);*/

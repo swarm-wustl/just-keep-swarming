@@ -40,6 +40,37 @@ void print_map(const Map &map, const vector<Cell> &path) {
   std::cout << std::flush;
 }
 
+bool Obstacle_Inflate(Map *map, int radius) {
+  Map old_map = *map;
+  int rows = old_map.size();
+  int cols = old_map[0].size();
+  Map new_map = old_map;
+  bool changed = false;
+
+  for (int i = 0; i < rows; ++i) {
+    for (int j = 0; j < cols; ++j) {
+      if (old_map[i][j] == 1) {
+        for (int di = -radius; di <= radius; ++di) {
+          for (int dj = -radius; dj <= radius; ++dj) {
+            int ni = i + di;
+            int nj = j + dj;
+            if (ni >= 0 && ni < rows && nj >= 0 && nj < cols) {
+              if (new_map[ni][nj] != 1) {
+                new_map[ni][nj] = 1;
+                changed = true;
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+
+  *map = new_map;
+
+  return changed;
+}
+
 void print_multi_map(const Map &map, const vector<Cell> &state) {
   for (size_t i = 0; i < map.size(); i++) {
     for (size_t j = 0; j < map[i].size(); j++) {

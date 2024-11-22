@@ -56,6 +56,10 @@ bool invalid_start(const Map &map, const Cell &goal, const Cell &start);
 // Check if a multi robot start and end is invalid
 bool invalid_multi_start(const Map &map, const vector<Cell> &start,
                          const vector<Cell> &goal);
+
+// Obsstacle the inflate according to radius parameter
+bool Obstacle_Inflate(Map *map, int radius);
+
 }  // namespace control_algorithms
 
 namespace std {
