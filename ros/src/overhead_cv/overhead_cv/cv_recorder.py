@@ -62,6 +62,10 @@ class CVRecorder(Node):
             Float32MultiArray, "multi_array_pos", 10
         )
 
+        self.poses_emit = self.create_publisher(
+            Float32MultiArray, "obstacles", 10
+        )
+
         # this is the real life size in your chosen unit,
         # for now we are defaulting to 500 by 500 units
         self.conversion = [500, 500]
@@ -91,6 +95,14 @@ class CVRecorder(Node):
         submit_data.data = submit
 
         self.poses_emit.publish(submit_data)
+
+    def emit_obstacles(self, num_obstacles, obstacles):
+        if num_obstacles == 0:
+            return
+        
+        msg = Float32MultiArray()
+        msg.data = [float(val) for row in obstacles for val in row]
+        self.poses_emit.publish((msg))
 
     def display_images(self, map_image, frame):
         for point in self.robot_points:
@@ -138,10 +150,60 @@ class CVRecorder(Node):
             ids.append(float(code))
         return ids, packet_points
 
+    def occupancy_to_pixel(self,x,y,frame_width,frame_height):
+        occupancy_square_width = math.ceil(frame_width/self.occupancy_width)
+        occupancy_square_height= math.ceil(frame_height/self.occupancy_height)
+
+        x1 = x * occupancy_square_width
+        if x==self.occupancy_width:
+            x2=frame_width
+        else:
+            x2 = (x+1) * occupancy_square_width
+
+        y1 = y * occupancy_square_height
+        if y==self.occupancy_height:
+            y2=frame_width
+        else:
+            y2 = (y+1) * occupancy_square_height
+
+        return x1,x2,y1,y2
+
+    def obstacle_detector(self, data):
+        frame = self.cv_bridge.imgmsg_to_cv2(data)
+
+        frame_width = len(frame[0])
+
+        frame_height = len(frame)
+
+        range_= 12
+
+        background = np.median(frame)
+
+        occupancy_grid=[self.occupancy_width,self.occupancy_height]
+
+        obstacles=[]
+
+        num_obstacles=0
+
+        for x in range(0, occupancy_grid.shape[0]):
+            for y in range(0, occupancy_grid.shape[1]):
+                x1,x2,y1,y2 = self.occupancy_to_pixel(x,y,frame_width,frame_height)
+                if frame[x1:x2,y1:y2].mean > (range_+background):
+                    occupancy_grid[x][y]=1
+                    obstacles.append(x,y)
+                    num_obstacles+=1
+                else:
+                    occupancy_grid[x][y]=0
+        
+        return num_obstacles, obstacles
+
+
     # scans QR and gets data from it
     def scan_code_callback(self, data):
 
         frame = self.cv_bridge.imgmsg_to_cv2(data)
+
+        num_obstacles, obstacles= self.obstacle_detector(frame)
 
         frame_width = len(frame[0])
 
@@ -160,6 +222,11 @@ class CVRecorder(Node):
             )
 
             self.emit_points(ids, packet_points)
+
+            #check if any of the obstacles are the robots
+
+            self.emit_obstacles(num_obstacles, obstacles)
+
         if self.display:
             map_image = np.full(
                 (self.conversion[1], self.conversion[0], 3),

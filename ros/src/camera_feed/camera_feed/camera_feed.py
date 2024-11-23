@@ -11,6 +11,8 @@ from cv_bridge import CvBridge, CvBridgeError
 
 from shared_types.srv import CamMeta
 
+import numpy as np
+
 from std_msgs.msg import Float32MultiArray
 
 
@@ -97,7 +99,14 @@ class CameraFeed(Node):
                 width=float(frame.shape[1]), height=float(frame.shape[0])
             )
 
-            self.video_publisher.publish(self.bridge.cv2_to_imgmsg(frame, "bgr8"))
+            mtx = np.array([[654.62296133,   0,         313.33032545],
+                [  0,        654.92978153, 237.97421722],
+                [  0,           0,           1        ]])
+            dist = np.array([-6.41795050e-01,  6.23748353e-01,  5.65351048e-04, -3.53745930e-03, -4.54360728e-01])
+
+            undistorted_frame = cv2.undistort(frame, mtx, dist)
+
+            self.video_publisher.publish(self.bridge.cv2_to_imgmsg(undistorted_frame, "bgr8"))
 
         except CvBridgeError as error:
             rclpy.shutdown()
