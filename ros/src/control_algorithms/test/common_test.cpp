@@ -46,7 +46,7 @@ TEST(ObstacleInflate, Inflate) {
       {0, 0, 1, 1, 1, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
   };
 
-  EXPECT_TRUE(Obstacle_Inflate(&m1, 1));
+  EXPECT_TRUE(obstacle_inflate(&m1, 1));
   EXPECT_EQ(m1, m2);
 }
 

@@ -58,7 +58,7 @@ bool invalid_multi_start(const Map &map, const vector<Cell> &start,
                          const vector<Cell> &goal);
 
 // Obsstacle the inflate according to radius parameter
-bool Obstacle_Inflate(Map *map, int radius);
+bool obstacle_inflate(Map *map, int radius);
 
 }  // namespace control_algorithms
 

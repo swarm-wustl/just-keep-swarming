@@ -34,17 +34,18 @@ void MRPPActionClient::send_goal() {
     rclcpp::shutdown();
   }
 
-  AdjMatrix adj_matrix = load_structure(WALKER, 11);
-  Cell root = {5, 5};
-  int root_n = 0;
-  int radius = 1;
-  vector<Cell> goals = unfold_graph(adj_matrix, root, root_n, radius);
-  for (auto c : goals) {
-    RCLCPP_INFO(this->get_logger(), "%d, %d", c.x, c.y);
-  }
+  /*AdjMatrix adj_matrix = load_structure(WALKER, 11);*/
+  /*Cell root = {5, 5};*/
+  /*int root_n = 0;*/
+  /*int radius = 1;*/
+  /*vector<Cell> goals = unfold_graph(adj_matrix, root, root_n, radius);*/
+  /*for (auto c : goals) {*/
+  /*  RCLCPP_INFO(this->get_logger(), "%d, %d", c.x, c.y);*/
+  /*}*/
 
-  /*vector<Cell> goals = {{2, 5}, {2, 3}, {1, 4}, {3, 3},*/
-  /*                      {3, 9}, {4, 7}, {2, 8}, {2, 1}};*/
+  vector<Cell> goals = {
+      {9, 0}, {9, 1}, {9, 2}, {9, 3}, {9, 4}, {9, 5},
+  };
 
   auto goal_msg = MultiRobotPathPlan::Goal();
   for (Cell c : goals) {

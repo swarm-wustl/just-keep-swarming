@@ -61,7 +61,7 @@ void MultiRobotPathPlannerActionServer::execute(
   // Fake starting positions in place of state estimation
   vector<Cell> robots = {
       {0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5},
-      {5, 0}, {4, 0}, {3, 0}, {2, 0}, {1, 0},
+      /*{5, 0}, {4, 0}, {3, 0}, {2, 0}, {1, 0},*/
   };
 
   vector<Cell> goals;
@@ -70,20 +70,29 @@ void MultiRobotPathPlannerActionServer::execute(
   }
 
   if (robots.size() != goals.size()) {
+    RCLCPP_ERROR(this->get_logger(),
+                 "Number of goals does not equal number of robots");
     result->error_code = NUM_GOAL_NUM_ROBOTS_MISMATCH;
     result->error_msg = "Number of goals does not equal number of robots";
     goal_handle->abort(result);
+    return;
   }
 
   // Fake map in place of occupancy grid
   Map map = {
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 1, 0, 0, 0, 0, 0, 0, 0, 0},
-      {0, 0, 1, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0}, {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // .
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // .
+      {0, 0, 1, 0, 0, 0, 0, 0, 0, 0},  // .
+      {0, 0, 0, 0, 0, 0, 0, 1, 0, 0},  // .
+      {0, 0, 0, 0, 1, 0, 0, 0, 0, 0},  // .
+      {0, 0, 0, 0, 1, 0, 0, 0, 0, 0},  // .
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // .
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // .
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // .
+      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // .
   };
-  bool changed = Obstacle_Inflate(&map, 1);
+  bool changed = obstacle_inflate(&map, 1);
+  print_multi_map(map, robots);
 
   auto start_time = this->now();
   /*vector<vector<Cell>> plan = sstar(robots, goals, map);*/
@@ -92,13 +101,6 @@ void MultiRobotPathPlannerActionServer::execute(
     result->error_code = FAILED_TO_PLAN;
     result->error_msg = "Failed to generate a plan";
     goal_handle->abort(result);
-  }
-
-  for (int i = 0; i < plan.size(); i++) {
-    RCLCPP_INFO(this->get_logger(), "robot %d", i);
-    for (auto c : plan[i]) {
-      RCLCPP_INFO(this->get_logger(), "(%d, %d)", c.x, c.y);
-    }
   }
 
   size_t i = 0;
@@ -133,7 +135,7 @@ void MultiRobotPathPlannerActionServer::execute(
     ++i;
   }
 
-  if (rclcpp::ok()) {
+  if (rclcpp::ok() && plan.size()) {
     result->error_code = SUCCESS;
     goal_handle->succeed(result);
     RCLCPP_INFO(this->get_logger(), "Planning succeeded");
