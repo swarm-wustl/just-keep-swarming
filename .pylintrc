@@ -17,7 +17,19 @@ good-names=i,
            ex,
            Run,
            _,
-           package_name 
+           package_name
+           A,
+           B,
+           F,
+           J,
+           K,
+           N,
+           P,
+           P_prev,
+           P_prior,
+           Q,
+           R,
+           S
 
 [SIMILARITIES]
 # Minimum lines number of a similarity.
