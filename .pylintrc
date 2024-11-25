@@ -21,7 +21,23 @@ good-names=i,
            x,
            y,
            X,
-           Y
+           Y,
+           z,
+           Z,
+           dt, 
+           q,
+           r,
+           P,
+           u,
+           K,
+           S,
+           zs, 
+           R
+           P_prior,
+           Q,
+           B,
+           F,
+           P_prev
 
 [SIMILARITIES]
 # Minimum lines number of a similarity.
