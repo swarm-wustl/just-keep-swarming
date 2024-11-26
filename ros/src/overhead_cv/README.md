@@ -61,6 +61,8 @@ ros2 run camera_feed camera_feed --ros-args -p delay:=0.002 -p focal_length:=0.0
 
 ros2 run overhead_cv obs_qr --ros-args -p display:=true 
 
+ros2 run overhead_cv position_estimator --ros-args -p q:=1.0 -p r:=5.0 # q and r require tuning
+
 ros2 run map_maker map_maker --ros-args -p resolution:=0.5
 ```
 

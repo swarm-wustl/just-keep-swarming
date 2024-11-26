@@ -6,6 +6,7 @@ import rclpy.logging
 
 from rclpy.node import Node
 
+# pylint: disable=import-error
 from shared_types.srv import CamMeta
 
 from nav_msgs.msg import OccupancyGrid, MapMetaData
@@ -59,9 +60,11 @@ def update_map(og_map: OccupancyGrid, point, val):
     og_map.data[int(point[1] * og_map.info.width) + int(point[0])] = val
 
 
+# pylint: disable=too-many-instance-attributes
 class MapMaker(Node):
     def __init__(self):
         super().__init__("map_maker")
+        self.use_filtered = True
         self.map_meta_client = self.create_client(CamMeta, "cam_meta_data")
 
         self.declare_parameter("resolution", 0.05)
@@ -86,7 +89,9 @@ class MapMaker(Node):
 
         self.robot_pos_sub = self.create_subscription(
             msg_type=Float32MultiArray,
-            topic="/robot_array_pos",
+            topic=(
+                "/filtered_robot_array_pos" if self.use_filtered else "/robot_array_pos"
+            ),
             callback=self.bot_update_callback,
             qos_profile=10,
         )
@@ -132,25 +137,29 @@ class MapMaker(Node):
 
         # removes current robot point and remarks it in the right spot
         # print(data)
-        for robo_it in range(0, data_n, 2):
+        # for robo_it in range(0, data_n, 2):
+        n = 3 if self.use_filtered else 2
+        for robo_it in range(0, data_n, n):
 
             # if robo_id in robots:
             #     self.update_map(og_map, robots[robo_id], 0)
 
             robo_point = (data[robo_it], data[robo_it + 1])
-            # print(robo_point)
+            robo_id = data[robo_it + 2] if self.use_filtered else None
+            print("pixel", robo_point)
             real_point = pixel_to_world(pixel_coords=robo_point, params=self.map_params)
 
             resoluion = self.og_map.info.resolution
             real_width = self.og_map.info.width * resoluion
             real_height = self.og_map.info.height * resoluion
             print("real:", real_point)
-            print("real_W:", real_width)
+            # print("real_W:", real_width)
             real_point = (
                 (real_point[0] + real_width / 2) / resoluion,
                 (real_point[1] + real_height / 2) / resoluion,
             )
             print("grid:", real_point)
+            print("id:", robo_id)
             # print(real_point)
             # robo_point = calculate_pos(quad_points, self.map_params)
 
@@ -172,10 +181,10 @@ class MapMaker(Node):
         cot = 0
         ans = ""
         for x in self.og_map.data:
-            if x == 1:
-                ans += "#"
-            else:
+            if x == 0:
                 ans += "*"
+            else:
+                ans += "#"
             cot += 1
             if cot == self.og_map.info.width:
                 print(ans)

@@ -31,13 +31,18 @@ good-names=i,
            u,
            K,
            S,
-           zs, 
-           R
+           zs,
+           w,
+           h,
+           R,
            P_prior,
+           n,
            Q,
            B,
            F,
-           P_prev
+           P_prev,
+           N,
+           J
 
 [SIMILARITIES]
 # Minimum lines number of a similarity.

@@ -1,3 +1,4 @@
+import time
 import numpy as np
 
 from overhead_cv.utils.hungarian import hungarian
@@ -22,8 +23,8 @@ class MultiRobotStateEstimator:
                 self.estimator_id += 1
 
         # TODO(sebtheiler): use new filtered values instead of raw observations # pylint: disable=fixme
-        ids = self.estimators.keys()
-        zs_prev = list(map(lambda e: H @ e.x, self.estimators))
+        ids = list(self.estimators.keys())
+        zs_prev = list(map(lambda e: H @ e.x, self.estimators.values()))
         zs_cur = zs + [None] * (len(zs_prev) - len(zs))
         assignments = hungarian(
             zs_prev,
@@ -31,13 +32,29 @@ class MultiRobotStateEstimator:
             ids,
         )
 
-        for assignment in assignments:
-            z = zs_cur[assignment]
+        print(assignments)
+        for i, assignment in enumerate(assignments):
+            z = zs_cur[i]
             if z is None:
                 continue
 
             u = id2u.get(assignment, np.zeros(2))
-
             self.estimators[assignment].update_estimate(u, z, dt)
 
+        self.remove_unseen()
+
         return assignments
+
+    def remove_unseen(self):
+        estimator_ids_to_remove = []
+        for estimator_id, estimator in self.estimators.items():
+            now = time.time()
+            if (now - estimator.last_estimate_received_at > 0.5) or (
+                estimator.num_estimates_received < 20
+                and now - estimator.last_estimate_received_at > 0.01
+            ):  # TODO(sebtheiler): make param # pylint: disable=fixme
+                estimator_ids_to_remove.append(estimator_id)
+
+        for estimator_id in estimator_ids_to_remove:
+            print("robot no longer detected!")
+            del self.estimators[estimator_id]

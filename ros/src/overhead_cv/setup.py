@@ -18,6 +18,9 @@ setup(
     license="Apache-2.0",
     tests_require=["pytest"],
     entry_points={
-        "console_scripts": ["obs_qr=overhead_cv.cv_recorder:main"],
+        "console_scripts": [
+            "obs_qr=overhead_cv.cv_recorder:main",
+            "position_estimator=overhead_cv.position_estimator:main",
+        ],
     },
 )

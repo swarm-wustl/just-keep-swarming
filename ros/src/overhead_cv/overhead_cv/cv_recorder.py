@@ -42,15 +42,8 @@ def detect_and_draw_boxes(frame, lower_color, upper_color):
 # intended to convert points to width and height of sub image
 def calculate_pos(cont_points, conversion, width, height):
 
-    rect_x, rect_y, width, height = cv2.boundingRect(cont_points)
-    points = np.array(
-        [
-            (rect_x, rect_y),
-            (rect_x + width, rect_y),
-            (rect_x + width, rect_y + height),
-            (rect_x, rect_y + height),
-        ]
-    )
+    x, y, w, h = cv2.boundingRect(cont_points)
+    points = np.array([(x, y), (x + w, y), (x + w, y + h), (x, y + h)])
 
     max_x = max(points[1][0], points[2][0])
     min_x = min(points[0][0], points[3][0])

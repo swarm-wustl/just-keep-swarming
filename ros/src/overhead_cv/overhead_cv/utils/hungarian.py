@@ -24,13 +24,15 @@ from scipy.optimize import linear_sum_assignment
 #     return reordered_ids
 
 
+# TODO(sebtheiler): this whole system needs a rework # pylint: disable=fixme
 def hungarian(xs_prev, xs_cur, ids):
-    N = xs_prev.shape[0]
+    N = len(xs_prev)  # xs_prev.shape[0]
+    assert N == len(xs_cur)
     J = np.zeros((N, N))
     for i in range(N):
         for j in range(N):
             if xs_cur[j] is None:
-                J[i, j] = np.Inf
+                J[i, j] = 999999  # np.Inf
             else:
                 J[i, j] = np.sum((xs_prev[i] - xs_cur[j]) ** 2)
 
