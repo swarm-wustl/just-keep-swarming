@@ -1,0 +1,9 @@
+GridCell[] goal_cells
+int64[] robot_for_goal
+---
+uint16 error_code
+string error_msg
+---
+GridCell[] current_poses
+builtin_interfaces/Duration navigation_time
+int64 num_goals_reached
