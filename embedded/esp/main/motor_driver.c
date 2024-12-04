@@ -108,6 +108,9 @@ void motor_task(void *param) {
                 double right_duty_cycle = compute_duty_cycle(data.right.pwm_ratio);
                 ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, RIGHT_MOTOR_CHANNEL, right_duty_cycle));
                 ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, RIGHT_MOTOR_CHANNEL));
+
+                // printf("pwm left, right: %f, %f", data.left.pwm_ratio, data.right.pwm_ratio);
+                // printf("duty left, right: %f, %f", left_duty_cycle, right_duty_cycle);
             }
         }
     }

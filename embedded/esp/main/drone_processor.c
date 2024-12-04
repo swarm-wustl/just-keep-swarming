@@ -20,7 +20,9 @@
 #include "util.h"
 #include "motor_driver.h"
 
-static float quaternion_to_yaw(float w, float x, float y, float z) {
+// NOTE: The robot is assumed to only rotate about the z-axis
+// Therefore, all quaternion input data should have x=0, y=0, w and z are nonzero
+static double quaternion_to_yaw(double w, double x, double y, double z) {
     return atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z));
 }
 
@@ -40,20 +42,22 @@ static void drone_callback(const void *msgin) {
     struct motor_command left_motor;
     struct motor_command right_motor;
 
-    float x_curr = msg->current_pos.position.x;
-    float y_curr = msg->current_pos.position.y;
-    float theta_curr = quaternion_to_yaw(
+    double x_curr = msg->current_pos.position.x;
+    double y_curr = msg->current_pos.position.y;
+    double theta_curr = quaternion_to_yaw(
         msg->current_pos.orientation.w, 
         msg->current_pos.orientation.x, 
         msg->current_pos.orientation.y, 
         msg->current_pos.orientation.z
     );
 
-    float x_target = msg->target_pos.position.x;
-    float y_target = msg->target_pos.position.y;
+    double x_target = msg->target_pos.position.x;
+    double y_target = msg->target_pos.position.y;
 
-    float theta_target = atan2(y_target - y_curr, x_target - x_curr);
-    float theta_error = theta_target - theta_curr;
+    double theta_target = atan2(y_target - y_curr, x_target - x_curr);
+    double theta_error = theta_target - theta_curr;
+
+    // printf("theta_target, theta_curr: %f, %f", theta_target, theta_curr);
 
     // Normalize angle to [-pi, pi]
 
@@ -69,9 +73,9 @@ static void drone_callback(const void *msgin) {
 
     if (fabs(theta_error) > ANGLE_TOLERANCE) {
         // TODO: add Kd, Ki
-        float angular_velocity = Kp_angular * theta_error;
+        double angular_velocity = Kp_angular * theta_error;
 
-        float pwm = fmin(fabs(angular_velocity), 1.0);
+        double pwm = fmin(fabs(angular_velocity), 1.0);
 
         // TODO: make sure motors are running in proper directions
         if (angular_velocity >= 0) {
@@ -109,11 +113,11 @@ static void drone_callback(const void *msgin) {
 
     // Move robot to reach target distance
 
-    float distance_error = sqrt(pow(x_target - x_curr, 2) + pow(y_target - y_curr, 2));
+    double distance_error = sqrt(pow(x_target - x_curr, 2) + pow(y_target - y_curr, 2));
 
     if (distance_error > DISTANCE_TOLERANCE) {
         // TODO: add Kd, Ki
-        float linear_velocity = Kp_linear * distance_error;
+        double linear_velocity = Kp_linear * distance_error;
 
         // Set motor commands for forward motion
         left_motor = (struct motor_command){
