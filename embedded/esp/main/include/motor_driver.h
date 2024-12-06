@@ -26,15 +26,12 @@
 #define IN4 GPIO_NUM_26
 #define GPIO_BITMASK (1ULL << ENA) | (1ULL << IN1) | (1ULL << IN2) | (1ULL << ENB) | (1ULL << IN3) | (1ULL << IN4)
 
+#define PWM_STOP 0.0
+
 enum direction {
     FORWARD,
     BACKWARD,
-    STOP
-};
-
-enum digital_logic {
-    HIGH,
-    LOW
+    DIR_STOP
 };
 
 struct motor_command {

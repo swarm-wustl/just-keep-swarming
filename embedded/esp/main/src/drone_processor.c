@@ -35,7 +35,7 @@ static double quaternion_to_yaw(double w, double x, double y, double z) {
     * Push the motor command to the queue
 */
 static void drone_callback(const void *msgin) {
-    const drone_data__msg__RobotPosition *msg = (const drone_data__msg__RobotPosition *)msgin;
+    const drone_data__msg__RobotPosition * msg = (const drone_data__msg__RobotPosition *)msgin;
     printf("Received: %d\n",  (int)msg->current_pos.position.x);
 
     // Get current and target positions
@@ -77,27 +77,16 @@ static void drone_callback(const void *msgin) {
 
         double pwm = fmin(fabs(angular_velocity), 1.0);
 
+        left_motor.pwm_ratio = pwm;
+        right_motor.pwm_ratio = pwm;
+
         // TODO: make sure motors are running in proper directions
         if (angular_velocity >= 0) {
-            left_motor = (struct motor_command){
-                .dir = BACKWARD,
-                .pwm_ratio = pwm
-            };
-
-            right_motor = (struct motor_command){
-                .dir = FORWARD,
-                .pwm_ratio = pwm
-            };
+            left_motor.dir = BACKWARD;
+            right_motor.dir = FORWARD;
         } else {
-            left_motor = (struct motor_command){
-                .dir = FORWARD,
-                .pwm_ratio = pwm
-            };
-
-            right_motor = (struct motor_command){
-                .dir = BACKWARD,
-                .pwm_ratio = pwm
-            };
+            left_motor.dir = FORWARD;
+            right_motor.dir = BACKWARD;
         }
 
         push_to_motor_queue((struct queue_data){
@@ -111,23 +100,21 @@ static void drone_callback(const void *msgin) {
         return;
     }
 
-    // Move robot to reach target distance
+    // If angle is within tolerance, move robot to reach target distance
 
     double distance_error = sqrt(pow(x_target - x_curr, 2) + pow(y_target - y_curr, 2));
 
     if (distance_error > DISTANCE_TOLERANCE) {
         double linear_velocity = linear_error_to_velocity(distance_error);
 
-        // Set motor commands for forward motion
-        left_motor = (struct motor_command){
-            .dir = FORWARD,
-            .pwm_ratio = fmin(linear_velocity, 1.0)
-        };
+        double pwm = fmin(fabs(linear_velocity), 1.0);
 
-        right_motor = (struct motor_command){
-            .dir = FORWARD,
-            .pwm_ratio = fmin(linear_velocity, 1.0)
-        };
+        left_motor.pwm_ratio = pwm;
+        right_motor.pwm_ratio = pwm;
+
+        // Set motor commands for forward motion
+        left_motor.dir = FORWARD;
+        left_motor.dir = FORWARD;
 
         push_to_motor_queue((struct queue_data){
             .left = left_motor,
@@ -142,15 +129,11 @@ static void drone_callback(const void *msgin) {
 
     printf("Target reached!\n");
 
-    left_motor = (struct motor_command){
-        .dir = STOP,
-        .pwm_ratio = 0.0
-    };
+    left_motor.pwm_ratio = PWM_STOP;
+    right_motor.pwm_ratio = PWM_STOP;
 
-    right_motor = (struct motor_command){
-        .dir = STOP,
-        .pwm_ratio = 0.0
-    };
+    left_motor.dir = DIR_STOP;
+    right_motor.dir = DIR_STOP;
     
     push_to_motor_queue((struct queue_data){
         .left = left_motor,

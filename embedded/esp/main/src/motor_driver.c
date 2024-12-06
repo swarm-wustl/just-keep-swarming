@@ -3,6 +3,8 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/queue.h"
 
+#include "util.h"
+
 static QueueHandle_t xQueue = NULL;
 static TickType_t delay = MOTOR_QUEUE_DELAY;
 static struct queue_data data;
@@ -75,7 +77,7 @@ void motor_task(void *param) {
 
                 // Control left motor
                 enum direction left_dir = data.left.dir;
-                if (left_dir == STOP) {
+                if (left_dir == DIR_STOP) {
                     gpio_set_level(IN1, LOW);
                     gpio_set_level(IN2, LOW);
                 } else if (left_dir == FORWARD) {
@@ -88,7 +90,7 @@ void motor_task(void *param) {
 
                 // Control right motor
                 enum direction right_dir = data.right.dir;
-                if (right_dir == STOP) {
+                if (right_dir == DIR_STOP) {
                     gpio_set_level(IN3, LOW);
                     gpio_set_level(IN4, LOW);
                 } else if (left_dir == FORWARD) {
