@@ -51,6 +51,7 @@ static void drone_callback(const void *msgin) {
         msg->current_pos.orientation.y, 
         msg->current_pos.orientation.z
     );
+    int32_t time_curr = msg->stamp.sec;
 
     double x_target = msg->target_pos.position.x;
     double y_target = msg->target_pos.position.y;
@@ -73,7 +74,7 @@ static void drone_callback(const void *msgin) {
     // Turn robot to face target point
 
     if (fabs(theta_error) > ANGLE_TOLERANCE) {
-        double angular_velocity = angular_error_to_velocity(theta_error);
+        double angular_velocity = angular_error_to_velocity(theta_error, time_curr);
 
         double pwm = fmin(fabs(angular_velocity), 1.0);
 
@@ -105,7 +106,7 @@ static void drone_callback(const void *msgin) {
     double distance_error = sqrt(pow(x_target - x_curr, 2) + pow(y_target - y_curr, 2));
 
     if (distance_error > DISTANCE_TOLERANCE) {
-        double linear_velocity = linear_error_to_velocity(distance_error);
+        double linear_velocity = linear_error_to_velocity(distance_error, time_curr);
 
         double pwm = fmin(fabs(linear_velocity), 1.0);
 
