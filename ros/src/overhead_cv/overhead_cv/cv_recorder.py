@@ -26,13 +26,29 @@ MAP_WINDOW = "location tracking"
 QCD = cv2.QRCodeDetector()
 
 
-def detect_and_draw_boxes(frame, lower_color, upper_color):
+def detect_obstacles(frame, lower_color, upper_color):
+    hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+    cv2.imshow("Masked Image", hsv_frame)
+    # Create a color mask
+    mask = cv2.inRange(hsv_frame, lower_color, upper_color)
+
+    # Find contours from the mask
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+
+    return contours, mask
+
+
+def detect_and_draw_boxes(frame, lower_color, upper_color, inverse=False):
     # Convert frame to HSV color space
     hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
     cv2.imshow("Masked Image", hsv_frame)
     # Create a color mask
     mask = cv2.inRange(hsv_frame, lower_color, upper_color)
+
+    if inverse:
+        mask = cv2.bitwise_not(mask)
 
     # Find contours from the mask
     contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
@@ -135,7 +151,7 @@ class CVRecorder(Node):
         cv2.imshow(MAP_WINDOW, map_image)
         cv2.waitKey(1)
 
-    def analyze_scan(self, points, dim, frame):
+    def analyze_scan(self, points, dim, frame, obstacle=False):
         packet_points = []
         if self.display:
             self.current_robot_points = []
@@ -143,7 +159,8 @@ class CVRecorder(Node):
             if cv2.contourArea(rob_points) < 200:
                 continue
             color = (0, 255, 0)
-
+            if obstacle:
+                color = (255, 0, 0)
             point, scaled_mesh = calculate_pos(
                 cont_points=rob_points,
                 conversion=self.conversion,
@@ -171,16 +188,34 @@ class CVRecorder(Node):
         frame_height = len(frame)
         packet_points = []
 
-        lower_color = np.array([0, 124, 0])  # Adjust as needed
+        lower_color = np.array([0, 90, 130])  # Adjust as needed
         upper_color = np.array([18, 255, 255])
+
         robot_points, mask = detect_and_draw_boxes(frame, lower_color, upper_color)
 
+        inverse_mask = cv2.bitwise_not(mask)
+
+        inverse_frame = cv2.bitwise_and(frame, frame, mask=inverse_mask)
+
+        lower_color_obs = np.array([0, 25, 40])  # Adjust as needed
+        upper_color_obs = np.array([255, 255, 255])
+
+        obstacle_points, mask_ob = detect_obstacles(
+            inverse_frame, lower_color_obs, upper_color_obs
+        )
+        print(mask_ob)
         if robot_points:
 
             packet_points = self.analyze_scan(
                 points=robot_points,
                 dim=(frame_width, frame_height),
                 frame=frame,
+            )
+            self.analyze_scan(
+                points=obstacle_points,
+                dim=(frame_width, frame_height),
+                frame=frame,
+                obstacle=True,
             )
 
             self.emit_positions(packet_points)
@@ -193,8 +228,13 @@ class CVRecorder(Node):
             )
             result = cv2.bitwise_and(frame, frame, mask=mask)
 
-            cv2.imshow("Mask", mask)
+            result_ob = cv2.bitwise_and(inverse_frame, inverse_frame)
+
+            # cv2.imshow("Mask", mask)
             cv2.imshow("Masked Image", result)
+
+            cv2.imshow("opp Image", result_ob)
+            # cv2.imshow("opp Image", result_ob)
             self.display_images(frame=frame, map_image=map_image)
 
 

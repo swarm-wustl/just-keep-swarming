@@ -5,6 +5,8 @@ ignored-modules = cv2
 
 [BASIC]
 
+max-locals=20
+
 extension-pkg-whitelist=cv2
 
 # Naming style matching correct constant names.
