@@ -26,14 +26,6 @@
 #define IN4 GPIO_NUM_26
 #define GPIO_BITMASK (1ULL << ENA) | (1ULL << IN1) | (1ULL << IN2) | (1ULL << ENB) | (1ULL << IN3) | (1ULL << IN4)
 
-// PID controller
-#define Kp_angular 2.0
-#define Kp_linear 1.0
-
-// Distance thresholds
-#define DISTANCE_TOLERANCE 0.05 // meters
-#define ANGLE_TOLERANCE 0.05    // rad
-
 enum direction {
     FORWARD,
     BACKWARD,

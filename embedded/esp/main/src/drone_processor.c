@@ -19,6 +19,7 @@
 
 #include "util.h"
 #include "motor_driver.h"
+#include "pid.h"
 
 // NOTE: The robot is assumed to only rotate about the z-axis
 // Therefore, all quaternion input data should have x=0, y=0, w and z are nonzero
@@ -72,8 +73,7 @@ static void drone_callback(const void *msgin) {
     // Turn robot to face target point
 
     if (fabs(theta_error) > ANGLE_TOLERANCE) {
-        // TODO: add Kd, Ki
-        double angular_velocity = Kp_angular * theta_error;
+        double angular_velocity = angular_error_to_velocity(theta_error);
 
         double pwm = fmin(fabs(angular_velocity), 1.0);
 
@@ -116,8 +116,7 @@ static void drone_callback(const void *msgin) {
     double distance_error = sqrt(pow(x_target - x_curr, 2) + pow(y_target - y_curr, 2));
 
     if (distance_error > DISTANCE_TOLERANCE) {
-        // TODO: add Kd, Ki
-        double linear_velocity = Kp_linear * distance_error;
+        double linear_velocity = linear_error_to_velocity(distance_error);
 
         // Set motor commands for forward motion
         left_motor = (struct motor_command){
