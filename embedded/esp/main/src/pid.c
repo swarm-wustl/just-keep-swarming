@@ -22,7 +22,7 @@ double angular_error_to_velocity(double error, int32_t time_curr) {
 
     // If this is the first packet, don't include a derivative term
     // Otherwise, calculate the derivative based on current and previous values
-    if (angular_time_prev == -1) {
+    if (angular_time_prev == -1 || time_curr == angular_time_prev) {
         derivative = 0;
     } else {
         derivative = (error - angular_error_prev) / (time_curr - angular_time_prev);
@@ -39,7 +39,7 @@ double linear_error_to_velocity(double error, int32_t time_curr) {
 
     // If this is the first packet, don't include a derivative term
     // Otherwise, calculate the derivative based on current and previous values
-    if (linear_time_prev == -1) {
+    if (linear_time_prev == -1 || time_curr == linear_time_prev) {
         derivative = 0;
     } else {
         derivative = (error - linear_error_prev) / (time_curr - linear_time_prev);
