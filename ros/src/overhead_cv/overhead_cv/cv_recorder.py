@@ -92,8 +92,6 @@ class CVRecorder(Node):
         self.robot_points = []
         self.current_robot_points = []
 
-    # changes the point to be relative to the center
-
     # publishes points and converts ids and points to publish array
     def emit_points(self, ids, points):
         if len(points) == 0:

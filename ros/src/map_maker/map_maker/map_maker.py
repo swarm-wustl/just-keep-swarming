@@ -96,6 +96,15 @@ class MapMaker(Node):
             qos_profile=10,
         )
 
+        self.robot_grid_pos = self.create_subscription(
+            msg_type=Float32MultiArray,
+            topic=(
+                "/filtered_robot_array_pos" if self.use_filtered else "/robot_array_pos"
+            ),
+            callback=self.bot_update_callback,
+            qos_profile=10,
+        )
+
         self.map_size_update = self.create_subscription(
             msg_type=Float32MultiArray,
             topic="/img_shape",
@@ -138,6 +147,7 @@ class MapMaker(Node):
         # removes current robot point and remarks it in the right spot
         # print(data)
         # for robo_it in range(0, data_n, 2):
+
         n = 3 if self.use_filtered else 2
         for robo_it in range(0, data_n, n):
 
@@ -147,7 +157,11 @@ class MapMaker(Node):
             robo_point = (data[robo_it], data[robo_it + 1])
             robo_id = data[robo_it + 2] if self.use_filtered else None
             print("pixel", robo_point)
-            real_point = pixel_to_world(pixel_coords=robo_point, params=self.map_params)
+
+            # old stuff
+            # real_point = pixel_to_world(pixel_coords=robo_point, params=self.map_params)
+
+            real_point = robo_point  # converted in cv_recorder
 
             resoluion = self.og_map.info.resolution
             real_width = self.og_map.info.width * resoluion
