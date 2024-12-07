@@ -124,6 +124,19 @@ class CVRecorder(Node):
 
         self.poses_emit.publish(submit_data)
 
+    def emit_obstacles(self, mask_ob):
+        if (len(mask_ob) == 0):
+            return
+        
+        mask_ob = mask_ob.flatten()
+        mask_ob = mask_ob.astype(float).tolist()
+
+        obstacle_data = Float32MultiArray()
+        obstacle_data.data = mask_ob
+
+        self.poses_emit.publish(obstacle_data)
+        
+
     def emit_positions(self, points):
         submit = []
         num = len(points)
@@ -203,7 +216,6 @@ class CVRecorder(Node):
         obstacle_points, mask_ob = detect_obstacles(
             inverse_frame, lower_color_obs, upper_color_obs
         )
-        print(mask_ob)
         if robot_points:
 
             packet_points = self.analyze_scan(
@@ -219,6 +231,7 @@ class CVRecorder(Node):
             )
 
             self.emit_positions(packet_points)
+            self.emit_obstacles(mask_ob)
 
         if self.display:
             map_image = np.full(

@@ -96,6 +96,15 @@ class MapMaker(Node):
             qos_profile=10,
         )
 
+        self.mask_ob_sub = self.create_subscription(
+            msg_type=Float32MultiArray,
+            topic=(
+                "/mask_ob"
+            ),
+            callback=self.mask_ob_callback,
+            qos_profile=10,
+        )
+
         self.map_size_update = self.create_subscription(
             msg_type=Float32MultiArray,
             topic="/img_shape",
@@ -167,6 +176,25 @@ class MapMaker(Node):
 
             # robots[robo_id] = real_point
 
+    def update_ob_data(self, data, og_map:OccupancyGrid):
+        resolution = self.og_map.info.resolution
+        real_height = self.og_map.info.height * resolution
+
+        for y in range(1, self.og_map.info.height):
+            for x in range(1, self.og_map.info.width):
+                point=(x,y)
+
+                inner_real_point=((resolution*y-1)*real_height)+(resolution*x-1)
+                real_point=((resolution*y)*real_height)+(resolution*x) #convert the points to index for the flattened array
+                obstacle=False
+
+                for i in range(inner_real_point, real_point): #check if there are any obstacles in that grid square
+                    if (data[i]!=0):
+                        obstacle=True
+
+                if(obstacle):
+                    update_map(og_map, point, 200) #set obstacle point on grid to 200
+
     def publish_map(self):
 
         self.og_map.header.stamp = self.get_clock().now().to_msg()
@@ -205,6 +233,17 @@ class MapMaker(Node):
         )
         ## publish
         self.publish_map()
+
+    def mask_ob_callback(self, data):
+        mask_ob = data.data
+
+        if len(self.og_map.data) == 0:
+            return
+        
+        self.update_ob_data(
+            data=mask_ob,
+            og_map=self.og_map,
+        )
 
     def set_map(self, data):
         # gets the width and height as points, transforms, and sets that as the size of the map
