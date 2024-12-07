@@ -36,25 +36,25 @@ static double quaternion_to_yaw(double w, double x, double y, double z) {
 */
 static void drone_callback(const void *msgin) {
     const drone_data__msg__RobotPosition * msg = (const drone_data__msg__RobotPosition *)msgin;
-    printf("Received: %d\n",  (int)msg->current_pos.position.x);
+    printf("Received: %d\n",  (int)msg->current_pose.position.x);
 
     // Get current and target positions
 
     struct motor_command left_motor;
     struct motor_command right_motor;
 
-    double x_curr = msg->current_pos.position.x;
-    double y_curr = msg->current_pos.position.y;
+    double x_curr = msg->current_pose.position.x;
+    double y_curr = msg->current_pose.position.y;
     double theta_curr = quaternion_to_yaw(
-        msg->current_pos.orientation.w, 
-        msg->current_pos.orientation.x, 
-        msg->current_pos.orientation.y, 
-        msg->current_pos.orientation.z
+        msg->current_pose.orientation.w, 
+        msg->current_pose.orientation.x, 
+        msg->current_pose.orientation.y, 
+        msg->current_pose.orientation.z
     );
-    int32_t time_curr = msg->stamp.sec;
+    int32_t time_curr = msg->header.stamp.sec;
 
-    double x_target = msg->target_pos.position.x;
-    double y_target = msg->target_pos.position.y;
+    double x_target = msg->target_pose.position.x;
+    double y_target = msg->target_pose.position.y;
 
     double theta_target = atan2(y_target - y_curr, x_target - x_curr);
     double theta_error = theta_target - theta_curr;
