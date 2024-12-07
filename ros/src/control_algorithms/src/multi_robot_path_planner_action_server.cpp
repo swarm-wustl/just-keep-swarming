@@ -1,5 +1,7 @@
-// Copyright 2024 Sebastian Theiler
+// Copyright 2024 Sebastian Theiler, Jaxon Poentis
 #include "control_algorithms/multi_robot_path_planner_action_server.hpp"
+
+#include <vector>
 
 #include "control_algorithms/algorithms/astar.hpp"
 #include "control_algorithms/algorithms/common.hpp"
@@ -21,6 +23,10 @@ MultiRobotPathPlannerActionServer::MultiRobotPathPlannerActionServer(
       std::bind(&MultiRobotPathPlannerActionServer::handle_goal, this, _1, _2),
       std::bind(&MultiRobotPathPlannerActionServer::handle_cancel, this, _1),
       std::bind(&MultiRobotPathPlannerActionServer::handle_accepted, this, _1));
+
+  this->map = {};
+  // this->subscription = this->create_subscription<>
+  // vector<vector<int>> ma
 
   RCLCPP_INFO(this->get_logger(),
               "Multi robot path planner action server initialized");
@@ -95,6 +101,7 @@ void MultiRobotPathPlannerActionServer::execute(
   print_multi_map(map, robots);
 
   auto start_time = this->now();
+
   /*vector<vector<Cell>> plan = sstar(robots, goals, map);*/
   vector<vector<Cell>> plan = pplan(robots, goals, map);
   if (plan.empty()) {
@@ -131,7 +138,14 @@ void MultiRobotPathPlannerActionServer::execute(
     feedback->num_goals_reached = num_goals_reached;
     goal_handle->publish_feedback(feedback);
 
-    loop_rate.sleep();
+    while (true) {
+      // TODO(Jaxon): get robot positions
+      // TODO(Alston): publish current and target
+      // TODO(CAT): compare to target positions
+      // TODO(PENIS): break if close enougn
+
+      loop_rate.sleep();
+    }
     ++i;
   }
 

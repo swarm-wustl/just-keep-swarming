@@ -1,0 +1,27 @@
+{
+  "cmake.sourceDirectory": "/home/observer/Desktop/swarm2024/just-keep-swarming/ros/src/control_algorithms",
+  "C_Cpp.errorSquiggles": "enabled",
+  "files.associations": {
+    "functional": "cpp"
+  },
+  "python.autoComplete.extraPaths": [
+    "/home/observer/Desktop/swarm2024/just-keep-swarming/ros/install/simulation/lib/python3.10/site-packages",
+    "/home/observer/Desktop/swarm2024/just-keep-swarming/ros/install/camera_feed/lib/python3.10/site-packages",
+    "/home/observer/Desktop/swarm2024/just-keep-swarming/ros/install/shared_types/local/lib/python3.10/dist-packages",
+    "/home/observer/Desktop/swarm2024/just-keep-swarming/ros/install/overhead_cv/lib/python3.10/site-packages",
+    "/home/observer/Desktop/swarm2024/just-keep-swarming/ros/install/map_maker/lib/python3.10/site-packages",
+    "/home/observer/Desktop/swarm2024/just-keep-swarming/ros/install/demo_control/lib/python3.10/site-packages",
+    "/opt/ros/humble/lib/python3.10/site-packages",
+    "/opt/ros/humble/local/lib/python3.10/dist-packages"
+  ],
+  "python.analysis.extraPaths": [
+    "/home/observer/Desktop/swarm2024/just-keep-swarming/ros/install/simulation/lib/python3.10/site-packages",
+    "/home/observer/Desktop/swarm2024/just-keep-swarming/ros/install/camera_feed/lib/python3.10/site-packages",
+    "/home/observer/Desktop/swarm2024/just-keep-swarming/ros/install/shared_types/local/lib/python3.10/dist-packages",
+    "/home/observer/Desktop/swarm2024/just-keep-swarming/ros/install/overhead_cv/lib/python3.10/site-packages",
+    "/home/observer/Desktop/swarm2024/just-keep-swarming/ros/install/map_maker/lib/python3.10/site-packages",
+    "/home/observer/Desktop/swarm2024/just-keep-swarming/ros/install/demo_control/lib/python3.10/site-packages",
+    "/opt/ros/humble/lib/python3.10/site-packages",
+    "/opt/ros/humble/local/lib/python3.10/dist-packages"
+  ]
+}

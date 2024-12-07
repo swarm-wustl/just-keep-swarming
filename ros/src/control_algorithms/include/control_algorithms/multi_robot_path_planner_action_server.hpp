@@ -2,6 +2,7 @@
 #pragma once
 
 #include <memory>
+#include <vector>
 
 #include "control_algorithms/action/multi_robot_path_plan.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -39,6 +40,8 @@ class MultiRobotPathPlannerActionServer : public rclcpp::Node {
       const std::shared_ptr<GoalHandleMultiRobotPathPlan> goal_handle);
 
   void execute(const std::shared_ptr<GoalHandleMultiRobotPathPlan> goal_handle);
+
+  std::vector<int> map;
 };
 
 }  // namespace control_algorithms
