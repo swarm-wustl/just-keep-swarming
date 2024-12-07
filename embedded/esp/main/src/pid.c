@@ -2,6 +2,7 @@
 
 // TODO: test Kd
 // TODO: add Ki
+// TODO: add reset functionality when going to a very new point (need to reset prev time, prev error, etc.)
 
 // Angular constsants
 #define Kp_angular 2.0
