@@ -1,8 +1,9 @@
+from typing import List
+
 import rclpy
 import rclpy.exceptions
 import rclpy.executors
 import rclpy.logging
-
 
 from rclpy.node import Node
 
@@ -15,7 +16,7 @@ from std_msgs.msg import Header
 
 from std_msgs.msg import Float32MultiArray
 
-from geometry_msgs.msg import Pose
+from geometry_msgs.msg import Pose, PoseArray
 
 from .pixel_to_real import pixel_to_world
 
@@ -88,7 +89,7 @@ class MapMaker(Node):
         }
 
         self.robot_pos_sub = self.create_subscription(
-            msg_type=Float32MultiArray,
+            msg_type=PoseArray,
             topic=(
                 "/filtered_robot_array_pos" if self.use_filtered else "/robot_array_pos"
             ),
@@ -96,14 +97,14 @@ class MapMaker(Node):
             qos_profile=10,
         )
 
-        self.robot_grid_pos = self.create_subscription(
-            msg_type=Float32MultiArray,
-            topic=(
-                "/filtered_robot_array_pos" if self.use_filtered else "/robot_array_pos"
-            ),
-            callback=self.bot_update_callback,
-            qos_profile=10,
-        )
+        # self.robot_grid_pos = self.create_subscription(
+        #     msg_type=Float32MultiArray,
+        #     topic=(
+        #         "/filtered_robot_array_pos" if self.use_filtered else "/robot_array_pos"
+        #     ),
+        #     callback=self.bot_update_callback,
+        #     qos_profile=10,
+        # )
 
         self.map_size_update = self.create_subscription(
             msg_type=Float32MultiArray,
@@ -142,20 +143,22 @@ class MapMaker(Node):
 
         print("test:", pixel_to_world((0, 0), self.map_params))
 
-    def update_robo_data(self, data_n, data, og_map: OccupancyGrid):
+    def update_robo_data(self, poses: List[Pose], og_map: OccupancyGrid):
 
         # removes current robot point and remarks it in the right spot
         # print(data)
         # for robo_it in range(0, data_n, 2):
 
-        n = 3 if self.use_filtered else 2
-        for robo_it in range(0, data_n, n):
+        # using pose array, robo id is postion
+        # n = 3 if self.use_filtered else 2
+
+        for robo_id, robo_pos in enumerate(poses):
 
             # if robo_id in robots:
             #     self.update_map(og_map, robots[robo_id], 0)
 
-            robo_point = (data[robo_it], data[robo_it + 1])
-            robo_id = data[robo_it + 2] if self.use_filtered else None
+            robo_point = (robo_pos.position.x, robo_pos.position.y)
+            # robo_id = data[robo_it + 2] if self.use_filtered else None
             print("pixel", robo_point)
 
             # old stuff
@@ -205,16 +208,15 @@ class MapMaker(Node):
                 ans = ""
                 cot = 0
 
-    def bot_update_callback(self, data):
+    def bot_update_callback(self, data: PoseArray):
         # print(data)
-        robot_values = data.data
+        robot_values = data.poses
 
         if len(self.og_map.data) == 0:
             return
 
         self.update_robo_data(
-            data_n=len(robot_values),
-            data=robot_values,
+            poses=robot_values,
             og_map=self.og_map,
         )
         ## publish
