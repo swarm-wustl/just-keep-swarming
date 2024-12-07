@@ -43,6 +43,11 @@ class MultiRobotPathPlannerActionServer : public rclcpp::Node {
   void execute(const std::shared_ptr<GoalHandleMultiRobotPathPlan> goal_handle);
 
   nav_msgs::msg::OccupancyGrid map;
+
+  rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr robot_poses_sub;
+  geometry_msgs::msg::PoseArray robot_poses;
+  void update_poses(const geometry_msgs::msg::PoseArray & msg) const;
+  
 };
 
 }  // namespace control_algorithms
