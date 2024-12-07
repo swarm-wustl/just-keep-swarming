@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "control_algorithms/action/multi_robot_path_plan.hpp"
+#include "nav_msgs/msg/occupancy_grid.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 
@@ -41,7 +42,7 @@ class MultiRobotPathPlannerActionServer : public rclcpp::Node {
 
   void execute(const std::shared_ptr<GoalHandleMultiRobotPathPlan> goal_handle);
 
-  std::vector<int> map;
+  nav_msgs::msg::OccupancyGrid map;
 };
 
 }  // namespace control_algorithms

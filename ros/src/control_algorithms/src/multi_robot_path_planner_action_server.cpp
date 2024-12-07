@@ -1,8 +1,6 @@
 // Copyright 2024 Sebastian Theiler, Jaxon Poentis
 #include "control_algorithms/multi_robot_path_planner_action_server.hpp"
 
-#include <vector>
-
 #include "control_algorithms/algorithms/astar.hpp"
 #include "control_algorithms/algorithms/common.hpp"
 #include "control_algorithms/algorithms/pplan.hpp"
@@ -24,7 +22,7 @@ MultiRobotPathPlannerActionServer::MultiRobotPathPlannerActionServer(
       std::bind(&MultiRobotPathPlannerActionServer::handle_cancel, this, _1),
       std::bind(&MultiRobotPathPlannerActionServer::handle_accepted, this, _1));
 
-  this->map = {};
+  this->map = nav_msgs::msg::OccupancyGrid();
   // this->subscription = this->create_subscription<>
   // vector<vector<int>> ma
 

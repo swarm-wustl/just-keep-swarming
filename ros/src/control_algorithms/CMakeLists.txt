@@ -11,6 +11,7 @@ find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(nav_msgs REQUIRED)
 
 rosidl_generate_interfaces(
   ${PROJECT_NAME} "action/MultiRobotPathPlan.action" "action/Assemble.action"
@@ -30,7 +31,7 @@ target_include_directories(
           $<INSTALL_INTERFACE:include>
           ${CMAKE_CURRENT_SOURCE_DIR}/include/control_algorithms/algorithms)
 ament_target_dependencies(mrpp_action_server "rclcpp" "rclcpp_action"
-                          "rclcpp_components")
+                          "rclcpp_components" "nav_msgs")
 rclcpp_components_register_node(
   mrpp_action_server PLUGIN
   "control_algorithms::MultiRobotPathPlannerActionServer" EXECUTABLE
@@ -50,7 +51,7 @@ target_include_directories(
           $<INSTALL_INTERFACE:include>
           ${CMAKE_CURRENT_SOURCE_DIR}/include/control_algorithms/algorithms)
 ament_target_dependencies(asm_action_server "rclcpp" "rclcpp_action"
-                          "rclcpp_components")
+                          "rclcpp_components" "nav_msgs")
 rclcpp_components_register_node(
   asm_action_server PLUGIN "control_algorithms::AssemblerActionServer"
   EXECUTABLE assembler_action_server)
@@ -70,7 +71,7 @@ target_include_directories(
   PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
           $<INSTALL_INTERFACE:include>)
 ament_target_dependencies(mrpp_action_client "rclcpp" "rclcpp_action"
-                          "rclcpp_components")
+                          "rclcpp_components" "nav_msgs")
 rclcpp_components_register_node(
   mrpp_action_client PLUGIN "control_algorithms::MRPPActionClient" EXECUTABLE
   demo_mrpp_action_client)
