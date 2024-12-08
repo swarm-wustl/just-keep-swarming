@@ -2,9 +2,11 @@
 #pragma once
 
 #include <memory>
+#include <set>
 #include <vector>
 
 #include "control_algorithms/action/multi_robot_path_plan.hpp"
+#include "drone_msg/msg/robot_position.hpp"
 #include "geometry_msgs/msg/pose_array.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "rclcpp/rclcpp.hpp"
@@ -43,6 +45,9 @@ class MultiRobotPathPlannerActionServer : public rclcpp::Node {
 
   void execute(const std::shared_ptr<GoalHandleMultiRobotPathPlan> goal_handle);
 
+  void robot_feedback(const geometry_msgs::msg::Pose current_pose,
+                      const geometry_msgs::msg::Pose target_pos, const int id);
+
   nav_msgs::msg::OccupancyGrid map;
 
   rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr
@@ -52,6 +57,10 @@ class MultiRobotPathPlannerActionServer : public rclcpp::Node {
   // changed this function to not be const to allow member variables to be
   // updated, revert if wrong (Jaxon)
   void update_poses(const geometry_msgs::msg::PoseArray &msg);
+
+  rclcpp::Publisher<drone_msg::msg::RobotPosition>::SharedPtr robot_full_pub;
+
+  const double cut_off_dist = 0.05;
 };
 
 }  // namespace control_algorithms

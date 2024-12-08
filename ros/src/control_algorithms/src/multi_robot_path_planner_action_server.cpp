@@ -5,11 +5,25 @@
 #include "control_algorithms/algorithms/common.hpp"
 #include "control_algorithms/algorithms/pplan.hpp"
 #include "control_algorithms/algorithms/sstar.hpp"
+#include "drone_msg/msg/robot_position.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
-
 namespace control_algorithms {
+
+// place holder for now, convert eugune code to correct code
+double cell_to_real(double x) { return x; }
+
+geometry_msgs::msg::Pose create_pose(double x, double y) {
+  geometry_msgs::msg::Pose pose = geometry_msgs::msg::Pose();
+
+  geometry_msgs::msg::Point point = geometry_msgs::msg::Point();
+  point.x = x;
+  point.y = y;
+
+  pose.position = point;
+  return pose;
+}
 
 MultiRobotPathPlannerActionServer::MultiRobotPathPlannerActionServer(
     const rclcpp::NodeOptions &options)
@@ -23,12 +37,13 @@ MultiRobotPathPlannerActionServer::MultiRobotPathPlannerActionServer(
       std::bind(&MultiRobotPathPlannerActionServer::handle_accepted, this, _1));
 
   this->map = nav_msgs::msg::OccupancyGrid();
-  // this->subscription = this->create_subscription<>
-  // vector<vector<int>> ma
+
+  this->robot_full_pub = this->create_publisher<drone_msg::msg::RobotPosition>(
+      "robot_full_pos", 10);
 
   this->robot_poses_sub =
       this->create_subscription<geometry_msgs::msg::PoseArray>(
-          "topic", 10,
+          "filtered_robot_array_pos", 10,
           std::bind(&MultiRobotPathPlannerActionServer::update_poses, this,
                     _1));
 
@@ -58,6 +73,22 @@ void MultiRobotPathPlannerActionServer::handle_accepted(
   std::thread{std::bind(&MultiRobotPathPlannerActionServer::execute, this, _1),
               goal_handle}
       .detach();
+}
+
+void MultiRobotPathPlannerActionServer::robot_feedback(
+    const geometry_msgs::msg::Pose current_pose,
+    const geometry_msgs::msg::Pose target_pos, const int id) {
+  drone_msg::msg::RobotPosition robot_msg = drone_msg::msg::RobotPosition();
+
+  std_msgs::msg::Header header = std_msgs::msg::Header();
+
+  rclcpp::Time now = this->get_clock()->now();
+  header.stamp = now;
+  robot_msg.header = header;
+  robot_msg.id = id;
+  robot_msg.current_pose = current_pose;
+  robot_msg.target_pose = target_pos;
+  this->robot_full_pub->publish(robot_msg);
 }
 
 void MultiRobotPathPlannerActionServer::execute(
@@ -142,26 +173,46 @@ void MultiRobotPathPlannerActionServer::execute(
     feedback->num_goals_reached = num_goals_reached;
     goal_handle->publish_feedback(feedback);
 
-    while (true) {
+    // this tracks how much robots made it to each goal for i-th timestep
+
+    std::unordered_set<int> passed_j = {};
+
+    while (passed_j.size() < robots.size()) {
       for (int j = 0; j < plan[i].size(); ++j) {
-        // //How the fuck did you push this (Jaxon)
-        // Cell &c = plan[j];
+        // the robot has already got to its position
+        if (passed_j.find(j) != passed_j.end()) continue;
+
+        // LOL
+        Cell &c = plan[i][j];
 
         // // Current
-        // double cx = robot_poses.poses[j].position.x;
-        // double cx = robot_poses.poses[j].position.y;
+        double cx = robot_poses.poses[j].position.x;
+        double cy = robot_poses.poses[j].position.y;
 
-        // Target
-        // is this a thing LOL (Jaxon)
+        // (Jaxon)
+        // im having this just return the pixel coord so it compiles LOL
+        // we're going to need to implement the python code for this.
+        // Is c.x going to be the grid x or real pos x, we can make the real pos
+        // be the point in the cnter of the grid would be pretty simple to calc
+        // that point
+        double tx = cell_to_real(c.x);
+        double ty = cell_to_real(c.y);
 
-        // How the fuck did you push this (Jaxon)
-        // double tx = cell_to_real(c.x);
-        // double ty = cell_to_real(c.y);
+        // if the stuff is close enuf, then mark in the set that robot j has
+        // reach its target, which will then be skipped above.
+        if (abs(cx - tx) <= this->cut_off_dist &&
+            abs(cy - ty) <= this->cut_off_dist) {
+          passed_j.insert(j);
+        }
+
+        // this is a little questionable, we're publishing the points even tho
+        // there could be no update, we should pontially move this into
+        // update_poses, and then keep track of the current timestamp with a
+        // member variable this should work for now tho
+        geometry_msgs::msg::Pose pose = create_pose(tx, ty);
+
+        this->robot_feedback(pose, robot_poses.poses[j], j);
       }
-
-      // TODO(Alston): publish current and target
-      // TODO(CAT): compare to target positions
-      // TODO(PENIS): break if close enougn
 
       loop_rate.sleep();
     }
@@ -180,6 +231,8 @@ void MultiRobotPathPlannerActionServer::execute(
 void MultiRobotPathPlannerActionServer::update_poses(
     const geometry_msgs::msg::PoseArray &msg) {
   this->robot_poses = msg;
+
+  // going to have this send the pose here
 }
 
 }  // namespace control_algorithms

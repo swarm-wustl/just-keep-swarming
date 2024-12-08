@@ -12,6 +12,7 @@ find_package(rclcpp_components REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
+find_package(drone_msg REQUIRED)
 
 rosidl_generate_interfaces(
   ${PROJECT_NAME} "action/MultiRobotPathPlan.action" "action/Assemble.action"
@@ -31,7 +32,7 @@ target_include_directories(
           $<INSTALL_INTERFACE:include>
           ${CMAKE_CURRENT_SOURCE_DIR}/include/control_algorithms/algorithms)
 ament_target_dependencies(mrpp_action_server "rclcpp" "rclcpp_action"
-                          "rclcpp_components" "nav_msgs")
+                          "rclcpp_components" "nav_msgs" "drone_msg")
 rclcpp_components_register_node(
   mrpp_action_server PLUGIN
   "control_algorithms::MultiRobotPathPlannerActionServer" EXECUTABLE
