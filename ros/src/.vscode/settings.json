@@ -4,7 +4,13 @@
   "files.associations": {
     "functional": "cpp",
     "string_view": "cpp",
-    "regex": "cpp"
+    "regex": "cpp",
+    "array": "cpp",
+    "bitset": "cpp",
+    "initializer_list": "cpp",
+    "span": "cpp",
+    "utility": "cpp",
+    "valarray": "cpp"
   },
   "python.autoComplete.extraPaths": [
     "/home/observer/Desktop/swarm2024/just-keep-swarming/ros/install/simulation/lib/python3.10/site-packages",

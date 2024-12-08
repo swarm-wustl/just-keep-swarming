@@ -48,7 +48,11 @@ class MultiRobotPathPlannerActionServer : public rclcpp::Node {
   void robot_feedback(const geometry_msgs::msg::Pose current_pose,
                       const geometry_msgs::msg::Pose target_pos, const int id);
 
-  nav_msgs::msg::OccupancyGrid map;
+  rclcpp::Subscription<nav_msgs::msg::OccupancyGrid>::SharedPtr og_map_sub;
+
+  void update_map(const nav_msgs::msg::OccupancyGrid &map_msg);
+
+  nav_msgs::msg::OccupancyGrid current_map;
 
   rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr
       robot_poses_sub;

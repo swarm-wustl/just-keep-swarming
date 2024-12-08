@@ -11,8 +11,52 @@
 #include "rclcpp_components/register_node_macro.hpp"
 namespace control_algorithms {
 
+Cell pose_to_cell(geometry_msgs::msg::Pose pose,
+                  nav_msgs::msg::OccupancyGrid const &og_map) {
+  float x = pose.position.x;
+  float y = pose.position.y;
+
+  int cell_x =
+      static_cast<int>(((x + static_cast<float>((og_map.info.width / 2.0)) /
+                                 og_map.info.resolution)));
+  int cell_y =
+      static_cast<int>(((y + static_cast<float>((og_map.info.height / 2.0)) /
+                                 og_map.info.resolution)));
+
+  return {cell_x, cell_y};
+}
+
+Map create_map(nav_msgs::msg::OccupancyGrid const &og_map) {
+  Map map = {};
+
+  vector<int> row = {};
+
+  int width = og_map.info.width;
+  int height = og_map.info.height;
+
+  for (int i = 0; i < height; i++) {
+    for (int j = 0; j < width; j++) {
+      row.push_back(og_map.data.at(i * width + j));
+    }
+    map.push_back(row);
+    row.empty();
+  }
+  return map;
+}
+
 // place holder for now, convert eugune code to correct code
-double cell_to_real(double x) { return x; }
+// accepts one dimension, convert to real dimension
+double x_cell_to_real(const double x,
+                      nav_msgs::msg::OccupancyGrid const &og_map) {
+  // plus resolution makes the goal the center of the square
+  return x * og_map.info.resolution - og_map.info.width / 2 +
+         og_map.info.resolution / 2;
+}
+double y_cell_to_real(const double y,
+                      nav_msgs::msg::OccupancyGrid const &og_map) {
+  return y * og_map.info.resolution - og_map.info.height / 2 +
+         og_map.info.resolution / 2;
+}
 
 geometry_msgs::msg::Pose create_pose(double x, double y) {
   geometry_msgs::msg::Pose pose = geometry_msgs::msg::Pose();
@@ -36,7 +80,9 @@ MultiRobotPathPlannerActionServer::MultiRobotPathPlannerActionServer(
       std::bind(&MultiRobotPathPlannerActionServer::handle_cancel, this, _1),
       std::bind(&MultiRobotPathPlannerActionServer::handle_accepted, this, _1));
 
-  this->map = nav_msgs::msg::OccupancyGrid();
+  this->og_map_sub = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
+      "og_map", 10,
+      std::bind(&MultiRobotPathPlannerActionServer::update_map, this, _1));
 
   this->robot_full_pub = this->create_publisher<drone_msg::msg::RobotPosition>(
       "robot_full_pos", 10);
@@ -75,6 +121,11 @@ void MultiRobotPathPlannerActionServer::handle_accepted(
       .detach();
 }
 
+void MultiRobotPathPlannerActionServer::update_map(
+    const nav_msgs::msg::OccupancyGrid &map_msg) {
+  this->current_map = map_msg;
+}
+
 void MultiRobotPathPlannerActionServer::robot_feedback(
     const geometry_msgs::msg::Pose current_pose,
     const geometry_msgs::msg::Pose target_pos, const int id) {
@@ -99,11 +150,25 @@ void MultiRobotPathPlannerActionServer::execute(
   auto feedback = std::make_shared<MultiRobotPathPlan::Feedback>();
   auto result = std::make_shared<MultiRobotPathPlan::Result>();
 
+  // stores the most recent map available, avoids the map changing mid run due
+  // to sub call_back
+  nav_msgs::msg::OccupancyGrid used_map = this->current_map;
+
+  Map map = create_map(used_map);
+
+  // Gets the initial robot positions based on what's current being reported as
+  // the positions
+  vector<Cell> robots = {};
+
+  for (const geometry_msgs::msg::Pose robot_pose : this->robot_poses.poses) {
+    robots.push_back(pose_to_cell(robot_pose, used_map));
+  }
+
   // Fake starting positions in place of state estimation
-  vector<Cell> robots = {
-      {0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5},
-      /*{5, 0}, {4, 0}, {3, 0}, {2, 0}, {1, 0},*/
-  };
+  // vector<Cell> robots = {
+  //     {0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5},
+  //     /*{5, 0}, {4, 0}, {3, 0}, {2, 0}, {1, 0},*/
+  // };
 
   vector<Cell> goals;
   for (const auto &goal_cell : goal->goal_cells) {
@@ -120,18 +185,19 @@ void MultiRobotPathPlannerActionServer::execute(
   }
 
   // Fake map in place of occupancy grid
-  Map map = {
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // .
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // .
-      {0, 0, 1, 0, 0, 0, 0, 0, 0, 0},  // .
-      {0, 0, 0, 0, 0, 0, 0, 1, 0, 0},  // .
-      {0, 0, 0, 0, 1, 0, 0, 0, 0, 0},  // .
-      {0, 0, 0, 0, 1, 0, 0, 0, 0, 0},  // .
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // .
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // .
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // .
-      {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // .
-  };
+  // Map map = {
+  //     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // .
+  //     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // .
+  //     {0, 0, 1, 0, 0, 0, 0, 0, 0, 0},  // .
+  //     {0, 0, 0, 0, 0, 0, 0, 1, 0, 0},  // .
+  //     {0, 0, 0, 0, 1, 0, 0, 0, 0, 0},  // .
+  //     {0, 0, 0, 0, 1, 0, 0, 0, 0, 0},  // .
+  //     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // .
+  //     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // .
+  //     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // .
+  //     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // .
+  // };
+
   bool changed = obstacle_inflate(&map, 1);
   print_multi_map(map, robots);
 
@@ -195,8 +261,8 @@ void MultiRobotPathPlannerActionServer::execute(
         // Is c.x going to be the grid x or real pos x, we can make the real pos
         // be the point in the cnter of the grid would be pretty simple to calc
         // that point
-        double tx = cell_to_real(c.x);
-        double ty = cell_to_real(c.y);
+        double tx = x_cell_to_real(c.x, used_map);
+        double ty = y_cell_to_real(c.y, used_map);
 
         // if the stuff is close enuf, then mark in the set that robot j has
         // reach its target, which will then be skipped above.
