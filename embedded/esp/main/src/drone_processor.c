@@ -8,6 +8,7 @@
 #include <rcl/rcl.h>
 #include <rcl/error_handling.h>
 #include <std_msgs/msg/int32.h>
+#include <geometry_msgs/msg/twist.h>
 #include <rclc/rclc.h>
 #include <rclc/executor.h>
 
@@ -27,6 +28,8 @@ static double quaternion_to_yaw(double w, double x, double y, double z) {
     return atan2(2.0 * (w * z + x * y), 1.0 - 2.0 * (y * y + z * z));
 }
 
+#define WHEEL_BASE 0.5
+
 /*
     Assume a stream of continual packets
     Computation flow:
@@ -35,106 +38,49 @@ static double quaternion_to_yaw(double w, double x, double y, double z) {
     * Push the motor command to the queue
 */
 static void drone_callback(const void *msgin) {
-    const drone_data__msg__RobotPosition * msg = (const drone_data__msg__RobotPosition *)msgin;
-    printf("Received: %d\n",  (int)msg->current_pose.position.x);
+    const geometry_msgs__msg__Twist * msg = (const geometry_msgs__msg__Twist *)msgin;
+    printf("Received: %d\n",  (int)3);
+
+    // Extract linear and angular velocities
+    double linear_x = msg->linear.x;
+    double angular_z = msg->angular.z;
+
+    // Compute left and right motor speeds
+    double left_motor_speed = linear_x - angular_z * (WHEEL_BASE / 2.0);
+    double right_motor_speed = linear_x + angular_z * (WHEEL_BASE / 2.0);
+
+    // Normalize motor speeds if necessary
+    double max_speed = fmax(fabs(left_motor_speed), fabs(right_motor_speed));
+    if (max_speed > 1.0)
+    {
+        left_motor_speed /= max_speed;
+        right_motor_speed /= max_speed;
+    }
 
     // Get current and target positions
 
     struct motor_command left_motor;
     struct motor_command right_motor;
 
-    double x_curr = msg->current_pose.position.x;
-    double y_curr = msg->current_pose.position.y;
-    double theta_curr = quaternion_to_yaw(
-        msg->current_pose.orientation.w, 
-        msg->current_pose.orientation.x, 
-        msg->current_pose.orientation.y, 
-        msg->current_pose.orientation.z
-    );
-    int32_t time_curr = msg->header.stamp.sec;
-
-    double x_target = msg->target_pose.position.x;
-    double y_target = msg->target_pose.position.y;
-
-    double theta_target = atan2(y_target - y_curr, x_target - x_curr);
-    double theta_error = theta_target - theta_curr;
-
-    // printf("theta_target, theta_curr: %f, %f", theta_target, theta_curr);
-
-    // Normalize angle to [-pi, pi]
-
-    if (theta_error > M_PI) {
-        theta_error -= 2 * M_PI;
-    }
-
-    if (theta_error < -1 * M_PI) {
-        theta_error += 2 * M_PI;
-    }
-
-    // Turn robot to face target point
-
-    if (fabs(theta_error) > ANGLE_TOLERANCE) {
-        double angular_velocity = angular_error_to_velocity(theta_error, time_curr);
-
-        double pwm = fmin(fabs(angular_velocity), 1.0);
-
-        left_motor.pwm_ratio = pwm;
-        right_motor.pwm_ratio = pwm;
-
-        // TODO: make sure motors are running in proper directions
-        if (angular_velocity >= 0) {
-            left_motor.dir = BACKWARD;
-            right_motor.dir = FORWARD;
-        } else {
-            left_motor.dir = FORWARD;
-            right_motor.dir = BACKWARD;
-        }
-
-        push_to_motor_queue((struct queue_data){
-            .left = left_motor,
-            .right = right_motor
-        });
-
-        printf("Rotating to target: Theta Error = %.2f\n", theta_error);
-
-        // Return early so we don't try moving linearly if we still need to fix our angle
-        return;
-    }
-
-    // If angle is within tolerance, move robot to reach target distance
-
-    double distance_error = sqrt(pow(x_target - x_curr, 2) + pow(y_target - y_curr, 2));
-
-    if (distance_error > DISTANCE_TOLERANCE) {
-        double linear_velocity = linear_error_to_velocity(distance_error, time_curr);
-
-        double pwm = fmin(fabs(linear_velocity), 1.0);
-
-        left_motor.pwm_ratio = pwm;
-        right_motor.pwm_ratio = pwm;
-
-        // Set motor commands for forward motion
+    if (left_motor_speed > 0) {
         left_motor.dir = FORWARD;
-        left_motor.dir = FORWARD;
-
-        push_to_motor_queue((struct queue_data){
-            .left = left_motor,
-            .right = right_motor
-        });
-
-        printf("Moving to target: Distance Error = %.2f\n", distance_error);
-
-        // Return early if still trying to reach target position
-        return;
+    } else if (left_motor_speed < 0) {
+        left_motor.dir = BACKWARD;
+    } else {
+        left_motor.dir = DIR_STOP;
     }
 
-    printf("Target reached!\n");
+    left_motor.pwm_ratio = left_motor_speed;
 
-    left_motor.pwm_ratio = PWM_STOP;
-    right_motor.pwm_ratio = PWM_STOP;
+    if (right_motor_speed > 0) {
+        right_motor.dir = FORWARD;
+    } else if (right_motor_speed < 0) {
+        right_motor.dir = BACKWARD;
+    } else {
+        right_motor.dir = DIR_STOP;
+    }
 
-    left_motor.dir = DIR_STOP;
-    right_motor.dir = DIR_STOP;
+    right_motor.pwm_ratio = right_motor_speed;
     
     push_to_motor_queue((struct queue_data){
         .left = left_motor,
@@ -161,19 +107,19 @@ void drone_task(void *param) {
 
     // create node
 	rcl_node_t node;
-	RCCHECK(rclc_node_init_default(&node, "esp32_example_node", "", &support));
+	RCCHECK(rclc_node_init_default(&node, "esp32_subscriber_node", "", &support));
 
     // create subscriber
     rcl_subscription_t subscriber;
     RCCHECK(rclc_subscription_init_default(
 		&subscriber,
 		&node,
-		ROSIDL_GET_MSG_TYPE_SUPPORT(drone_data, msg, RobotPosition),
-		"esp32_example_subscriber"
+		ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist),
+		"diff_cont/cmd_vel_unstamped"
     ));
 
     // create message
-    drone_data__msg__RobotPosition msg;
+    geometry_msgs__msg__Twist msg;
 
     // create executor with a single handle
     rclc_executor_t executor;
