@@ -5,6 +5,7 @@
 #include <vector>
 
 #include "control_algorithms/action/multi_robot_path_plan.hpp"
+#include "geometry_msgs/msg/pose_array.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
@@ -44,10 +45,13 @@ class MultiRobotPathPlannerActionServer : public rclcpp::Node {
 
   nav_msgs::msg::OccupancyGrid map;
 
-  rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr robot_poses_sub;
+  rclcpp::Subscription<geometry_msgs::msg::PoseArray>::SharedPtr
+      robot_poses_sub;
+
   geometry_msgs::msg::PoseArray robot_poses;
-  void update_poses(const geometry_msgs::msg::PoseArray & msg) const;
-  
+  // changed this function to not be const to allow member variables to be
+  // updated, revert if wrong (Jaxon)
+  void update_poses(const geometry_msgs::msg::PoseArray &msg);
 };
 
 }  // namespace control_algorithms

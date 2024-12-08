@@ -26,11 +26,11 @@ MultiRobotPathPlannerActionServer::MultiRobotPathPlannerActionServer(
   // this->subscription = this->create_subscription<>
   // vector<vector<int>> ma
 
-  this->robot_poses_sub = this->create_subscription<geometry_msgs::msg::PoseArray>(
-    "topic", 
-    10, 
-    std::bind(&MultiRobotPathPlannerActionServer::update_poses, this, _1)
-  );
+  this->robot_poses_sub =
+      this->create_subscription<geometry_msgs::msg::PoseArray>(
+          "topic", 10,
+          std::bind(&MultiRobotPathPlannerActionServer::update_poses, this,
+                    _1));
 
   RCLCPP_INFO(this->get_logger(),
               "Multi robot path planner action server initialized");
@@ -144,15 +144,19 @@ void MultiRobotPathPlannerActionServer::execute(
 
     while (true) {
       for (int j = 0; j < plan[i].size(); ++j) {
-        Cell &c = plan[j];
+        // //How the fuck did you push this (Jaxon)
+        // Cell &c = plan[j];
 
-        // Current
-        double cx = robot_poses.poses[j].position.x;
-        double cx = robot_poses.poses[j].position.y;
+        // // Current
+        // double cx = robot_poses.poses[j].position.x;
+        // double cx = robot_poses.poses[j].position.y;
 
         // Target
-        double tx = cell_to_real(c.x);
-        double ty = cell_to_real(c.y);
+        // is this a thing LOL (Jaxon)
+
+        // How the fuck did you push this (Jaxon)
+        // double tx = cell_to_real(c.x);
+        // double ty = cell_to_real(c.y);
       }
 
       // TODO(Alston): publish current and target
@@ -171,8 +175,11 @@ void MultiRobotPathPlannerActionServer::execute(
   }
 }
 
-void MultiRobotPathPlannerActionServer::update_poses(const geometry_msgs::msg::PoseArray & msg) const {
-  this->robot_poses = msg.data;
+// Fixed this here as I was getting errors with this function being const
+// updating a member variable
+void MultiRobotPathPlannerActionServer::update_poses(
+    const geometry_msgs::msg::PoseArray &msg) {
+  this->robot_poses = msg;
 }
 
 }  // namespace control_algorithms
