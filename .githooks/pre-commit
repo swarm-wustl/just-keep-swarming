@@ -97,23 +97,25 @@ if [ -n "$python_files" ]; then
 fi
 
 # Run colcon test
-cd ros
-echo "Running colcon build..."
-if ! colcon build; then
-  cd -
-  echo "colcon build failed. Commit aborted."
-  exit 1
-fi
-
-echo "Running colcon test..."
-if ! colcon test; then
-    echo "colcon test failed. Commit aborted."
-    if ! colcon test-result --all --verbose; then
+if command_exists "colcon"; then
+    cd ros
+    echo "Running colcon build..."
+    if ! colcon build; then
       cd -
+      echo "colcon build failed. Commit aborted."
       exit 1
     fi
-    cd -
-    exit 1
+    
+    echo "Running colcon test..."
+    if ! colcon test; then
+        echo "colcon test failed. Commit aborted."
+        if ! colcon test-result --all --verbose; then
+          cd -
+          exit 1
+        fi
+        cd -
+        exit 1
+    fi
 fi
 
 cd -
