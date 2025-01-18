@@ -28,21 +28,11 @@
 
 #define PWM_STOP 0.0
 
-enum direction {
-    FORWARD,
-    BACKWARD,
-    DIR_STOP
-};
+typedef enum {
+    MOTOR_FORWARD,
+    MOTOR_BACKWARD,
+    MOTOR_STOP
+} motor_direction_t;
 
-struct motor_command {
-    enum direction dir;
-    double pwm_ratio;
-};
-
-struct queue_data {
-    struct motor_command left;
-    struct motor_command right;
-};
-
-void push_to_motor_queue(struct queue_data d);
+void push_to_motor_driver_queue(void *msgin);
 void motor_task(void *param);

@@ -47,10 +47,10 @@ static double compute_duty_cycle(float pwm_ratio) {
     return pwm_ratio * ((1 << LEDC_DUTY_RES) - 1);
 }
 
-void push_to_motor_queue(struct queue_data d) {
+void push_to_motor_driver_queue(void *msgin) {
     // TODO: error handle
     if (xQueue != NULL) {
-        xQueueSendToBack(xQueue, (void *)&d, delay);
+        xQueueSendToBack(xQueue, msgin, delay);
     }
 }
 

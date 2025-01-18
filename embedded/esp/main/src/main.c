@@ -16,6 +16,9 @@
 
 #include "motor_driver.h"
 #include "drone_processor.h"
+#include "motor_converter.h"
+#include "differential_drive.h"
+#include "command_parser.h"
 #include "util.h"
 
 void app_main(void)
@@ -24,6 +27,6 @@ void app_main(void)
     ESP_ERROR_CHECK(uros_network_interface_initialize());
 #endif
 
-    xTaskCreate(drone_task, "drone_task", 4*1024, NULL, 1, NULL);
-    xTaskCreate(motor_task, "motor_task", 4*1024, NULL, 1, NULL);
+    // xTaskCreate(drone_task, "drone_task", 4*1024, NULL, 1, NULL);
+    xTaskCreate(differential_drive_driver_task, "motor_driver_task", 4*1024, NULL, 1, NULL);
 }
