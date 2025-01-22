@@ -13,7 +13,7 @@ typedef command_parser_ret_t (*command_parser_handler_t)(const void *msgin, void
 
 typedef struct {
     const char *node_name;
-    const char *subscriber_name;
+    const char *topic_name;
     const rosidl_message_type_support_t *message_type;
     command_parser_handler_t handler;
 } command_parser_t;

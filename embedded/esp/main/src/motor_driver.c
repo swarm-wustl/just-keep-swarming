@@ -43,5 +43,8 @@ void motor_driver_task(motor_driver_t *driver) {
             // TODO: error handler
             return;
         }
+
+        // clean up memory
+        free(msgin);
     }
 }

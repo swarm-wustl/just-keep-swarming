@@ -28,13 +28,17 @@ static void callback(const void *msgin) {
         return;
     }
 
-    void *msgout = NULL;
+    void *msgout = malloc(256);
     command_parser_ret_t res = handler(msgin, msgout);
+
+    printf("received msg!\n");
 
     if (res != COMMAND_PARSER_SUCCESS) {
         // TODO: error handler
         return;
     }
+
+    printf("parsed msg!\n");
 
     push_to_motor_driver_queue(msgout);
 }
@@ -66,14 +70,14 @@ void command_parser_task(command_parser_t *parser) {
 		&subscriber,
 		&node,
 		parser->message_type,
-		parser->subscriber_name
+		parser->topic_name
     ));
 
     // store the parser handler so that it can be used in the callback
     handler = parser->handler;
 
     // create message
-    void *msg;
+    void *msg = malloc(256);
 
     // create executor with a single handle
     rclc_executor_t executor;
@@ -83,11 +87,16 @@ void command_parser_task(command_parser_t *parser) {
     RCCHECK(rclc_executor_add_subscription(
         &executor, 
         &subscriber, 
-        &msg,
+        msg,
 		&callback, 
         ON_NEW_DATA
     ));
 
     // run the executor forever (continuously receive messages)
     rclc_executor_spin(&executor);
+
+    // clean up memory (if task ever reaches this point)
+    free(parser);
+    free(msg);
+    vTaskDelete(NULL);
 }
