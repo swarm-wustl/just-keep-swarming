@@ -21,6 +21,7 @@ void push_to_motor_driver_queue(void *msgin) {
 void motor_driver_task(motor_driver_t *driver) {
     if (driver->init() != MOTOR_DRIVER_SUCCESS) {
         // TOOD: error handler
+        printf("init failed!\n");
         return;
     }
 
@@ -29,19 +30,19 @@ void motor_driver_task(motor_driver_t *driver) {
     while (1) {
         if (xQueue == NULL) {
             // TODO: error handler
-            return;
+            continue;
         }
 
         if (xQueueReceive(xQueue, &msgin, delay) != pdPASS) {
             // TODO: error handler
-            return;
+            continue;
         }
 
         printf("received data!\n");
 
         if (driver->handler(msgin) != MOTOR_DRIVER_SUCCESS) {
             // TODO: error handler
-            return;
+            continue;
         }
 
         // clean up memory

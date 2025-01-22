@@ -40,11 +40,11 @@ void app_main(void)
     parser->message_type = ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist);
     parser->handler = (command_parser_handler_t)twist_to_differential_drive;
 
-    /*motor_driver_t motor_driver = {
-        .init = (motor_driver_ret_t (*)())esp32_l293d_differential_drive_init,
-        .handler = (motor_driver_ret_t (*)(void *))esp32_l293d_differential_drive_handler
-    };*/
+    motor_driver_t *motor_driver = malloc(sizeof(motor_driver_t));
+
+    motor_driver->init = (motor_driver_ret_t (*)())esp32_l293d_differential_drive_init;
+    motor_driver->handler = (motor_driver_ret_t (*)(void *))esp32_l293d_differential_drive_handler;
 
     xTaskCreate((TaskFunction_t)command_parser_task, "command_parser_task", 4*1024, parser, 1, NULL);
-    // xTaskCreate((TaskFunction_t)motor_driver_task, "motor_driver_task", 4*1024, &motor_driver, 1, NULL);
+    xTaskCreate((TaskFunction_t)motor_driver_task, "motor_driver_task", 4*1024, motor_driver, 1, NULL);
 }

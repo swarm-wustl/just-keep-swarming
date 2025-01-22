@@ -161,8 +161,7 @@ motor_driver_ret_t esp32_l293d_differential_drive_handler(differential_drive_mot
     ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, RIGHT_MOTOR_CHANNEL, right_duty_cycle));
     ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, RIGHT_MOTOR_CHANNEL));
 
-    // printf("pwm left, right: %f, %f", data.left.pwm_ratio, data.right.pwm_ratio);
-    // printf("duty left, right: %f, %f", left_duty_cycle, right_duty_cycle);
+    printf("ran motors successfully!\n");
 
     return MOTOR_DRIVER_SUCCESS;
 }

@@ -28,6 +28,7 @@ static void callback(const void *msgin) {
         return;
     }
 
+    // TODO: don't just do 256
     void *msgout = malloc(256);
     command_parser_ret_t res = handler(msgin, msgout);
 
@@ -77,6 +78,7 @@ void command_parser_task(command_parser_t *parser) {
     handler = parser->handler;
 
     // create message
+    // TODO: don't just do 256
     void *msg = malloc(256);
 
     // create executor with a single handle
