@@ -19,7 +19,7 @@
 #include "differential_drive.h"
 #include "util.h"
 
-#define WHEELBASE 0.5   // dist between wheels (m)
+#define WHEELBASE 0.5   // dist between wheels (m) (we're gonna fake it)
 
 #define LEDC_TIMER LEDC_TIMER_0
 #define LEDC_MODE LEDC_LOW_SPEED_MODE
@@ -29,12 +29,12 @@
 #define LEFT_MOTOR_CHANNEL LEDC_CHANNEL_0
 #define RIGHT_MOTOR_CHANNEL LEDC_CHANNEL_1
 
-#define ENA GPIO_NUM_13
-#define IN1 GPIO_NUM_12
-#define IN2 GPIO_NUM_14
-#define ENB GPIO_NUM_14   // TODO
-#define IN3 GPIO_NUM_27
-#define IN4 GPIO_NUM_26
+#define ENA GPIO_NUM_34
+#define IN1 GPIO_NUM_35
+#define IN2 GPIO_NUM_32
+#define ENB GPIO_NUM_26
+#define IN3 GPIO_NUM_25
+#define IN4 GPIO_NUM_33
 #define GPIO_BITMASK (1ULL << ENA) | (1ULL << IN1) | (1ULL << IN2) | (1ULL << ENB) | (1ULL << IN3) | (1ULL << IN4)
 
 command_parser_ret_t twist_to_differential_drive(const geometry_msgs__msg__Twist *msgin, differential_drive_motor_command_t *msgout) {
@@ -59,10 +59,10 @@ command_parser_ret_t twist_to_differential_drive(const geometry_msgs__msg__Twist
 
     // Determine motor directions and set PWM ratios
     msgout->left_dir = (left_velocity >= 0) ? MOTOR_FORWARD : MOTOR_BACKWARD;
-    msgout->right_dir = 2; // (right_velocity >= 0) ? MOTOR_FORWARD : MOTOR_BACKWARD;
+    msgout->right_dir = (right_velocity >= 0) ? MOTOR_FORWARD : MOTOR_BACKWARD;
 
-    msgout->left_pwm_ratio = 0.35; // fabs(left_velocity);
-    msgout->right_pwm_ratio = 0.6; //fabs(right_velocity);
+    msgout->left_pwm_ratio = fabs(left_velocity);
+    msgout->right_pwm_ratio = fabs(right_velocity);
 
     return COMMAND_PARSER_SUCCESS;
 }
