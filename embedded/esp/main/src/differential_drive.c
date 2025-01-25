@@ -58,6 +58,7 @@ command_parser_ret_t twist_to_differential_drive(const geometry_msgs__msg__Twist
     }
 
     // Determine motor directions and set PWM ratios
+    // TODO: change to constants
     if (fabs(left_velocity) <= 0.01) {
         msgout->left_dir = MOTOR_STOP;
     } else {
