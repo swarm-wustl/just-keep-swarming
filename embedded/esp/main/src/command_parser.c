@@ -22,6 +22,7 @@
 #include "util.h"
 
 static command_parser_handler_t handler;
+static void *msgout = NULL;
 
 static void callback(const void *msgin) {
     if (handler == NULL) {
@@ -29,10 +30,11 @@ static void callback(const void *msgin) {
     }
 
     // TODO: don't just do 256
-    void *msgout = malloc(256);
+    memset(msgout, 0, 256);
     command_parser_ret_t res = handler(msgin, msgout);
 
-    printf("received msg!\n");
+    // differential_drive_motor_command_t * temp = msgout;
+    // printf("received msg! %f\n", temp->left_pwm_ratio);
 
     if (res != COMMAND_PARSER_SUCCESS) {
         // TODO: error handler
@@ -77,9 +79,10 @@ void command_parser_task(command_parser_t *parser) {
     // store the parser handler so that it can be used in the callback
     handler = parser->handler;
 
-    // create message
+    // create messages
     // TODO: don't just do 256
-    void *msg = malloc(256);
+    void *msgin = malloc(256);
+    msgout = malloc(256);
 
     // create executor with a single handle
     rclc_executor_t executor;
@@ -89,16 +92,18 @@ void command_parser_task(command_parser_t *parser) {
     RCCHECK(rclc_executor_add_subscription(
         &executor, 
         &subscriber, 
-        msg,
+        msgin,
 		&callback, 
         ON_NEW_DATA
     ));
+
+    printf("hi: %s\n", parser->topic_name);
 
     // run the executor forever (continuously receive messages)
     rclc_executor_spin(&executor);
 
     // clean up memory (if task ever reaches this point)
     free(parser);
-    free(msg);
+    free(msgin);
     vTaskDelete(NULL);
 }

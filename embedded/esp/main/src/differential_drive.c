@@ -59,10 +59,10 @@ command_parser_ret_t twist_to_differential_drive(const geometry_msgs__msg__Twist
 
     // Determine motor directions and set PWM ratios
     msgout->left_dir = (left_velocity >= 0) ? MOTOR_FORWARD : MOTOR_BACKWARD;
-    msgout->right_dir = (right_velocity >= 0) ? MOTOR_FORWARD : MOTOR_BACKWARD;
+    msgout->right_dir = 2; // (right_velocity >= 0) ? MOTOR_FORWARD : MOTOR_BACKWARD;
 
-    msgout->left_pwm_ratio = fabs(left_velocity);
-    msgout->right_pwm_ratio = fabs(right_velocity);
+    msgout->left_pwm_ratio = 0.35; // fabs(left_velocity);
+    msgout->right_pwm_ratio = 0.6; //fabs(right_velocity);
 
     return COMMAND_PARSER_SUCCESS;
 }
@@ -123,6 +123,8 @@ motor_driver_ret_t esp32_l293d_differential_drive_handler(differential_drive_mot
     if (msgin == NULL) {
         return MOTOR_DRIVER_ERROR_GENERIC;
     }
+
+    printf("hola: %d %d %f %f\n", msgin->left_dir, msgin->right_dir, msgin->left_pwm_ratio, msgin->right_pwm_ratio);
 
     // Control motors based on table:
     // https://lastminuteengineers.com/l293d-dc-motor-arduino-tutorial/
