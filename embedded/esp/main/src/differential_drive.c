@@ -58,13 +58,13 @@ command_parser_ret_t twist_to_differential_drive(const geometry_msgs__msg__Twist
     }
 
     // Determine motor directions and set PWM ratios
-    if (left_velocity == 0) {
+    if (fabs(left_velocity) <= 0.01) {
         msgout->left_dir = MOTOR_STOP;
     } else {
         msgout->left_dir = (left_velocity >= 0) ? MOTOR_FORWARD : MOTOR_BACKWARD;
     }
     
-    if (right_velocity == 0) {
+    if (fabs(right_velocity) <= 0.01) {
         msgout->right_dir = MOTOR_STOP;
     } else {
         msgout->right_dir = (right_velocity >= 0) ? MOTOR_FORWARD : MOTOR_BACKWARD;
