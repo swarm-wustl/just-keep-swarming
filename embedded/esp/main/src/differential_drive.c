@@ -29,8 +29,8 @@
 #define LEFT_MOTOR_CHANNEL LEDC_CHANNEL_0
 #define RIGHT_MOTOR_CHANNEL LEDC_CHANNEL_1
 
-#define ENA GPIO_NUM_34
-#define IN1 GPIO_NUM_35
+#define ENA GPIO_NUM_27
+#define IN1 GPIO_NUM_14
 #define IN2 GPIO_NUM_32
 #define ENB GPIO_NUM_26
 #define IN3 GPIO_NUM_25
@@ -58,8 +58,17 @@ command_parser_ret_t twist_to_differential_drive(const geometry_msgs__msg__Twist
     }
 
     // Determine motor directions and set PWM ratios
-    msgout->left_dir = (left_velocity >= 0) ? MOTOR_FORWARD : MOTOR_BACKWARD;
-    msgout->right_dir = (right_velocity >= 0) ? MOTOR_FORWARD : MOTOR_BACKWARD;
+    if (left_velocity == 0) {
+        msgout->left_dir = MOTOR_STOP;
+    } else {
+        msgout->left_dir = (left_velocity >= 0) ? MOTOR_FORWARD : MOTOR_BACKWARD;
+    }
+    
+    if (right_velocity == 0) {
+        msgout->right_dir = MOTOR_STOP;
+    } else {
+        msgout->right_dir = (right_velocity >= 0) ? MOTOR_FORWARD : MOTOR_BACKWARD;
+    }
 
     msgout->left_pwm_ratio = fabs(left_velocity);
     msgout->right_pwm_ratio = fabs(right_velocity);
