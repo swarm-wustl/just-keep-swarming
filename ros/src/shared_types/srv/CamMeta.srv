@@ -1,0 +1,10 @@
+string units
+---
+float64 focal_length
+float64 cam_height
+float64 fov_x
+float64 fov_y
+float64 resolution_x
+float64 resolution_y
+float64 width
+float64 height
