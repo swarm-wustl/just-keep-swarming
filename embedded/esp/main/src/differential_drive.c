@@ -37,6 +37,8 @@
 #define IN4 GPIO_NUM_33
 #define GPIO_BITMASK (1ULL << ENA) | (1ULL << IN1) | (1ULL << IN2) | (1ULL << ENB) | (1ULL << IN3) | (1ULL << IN4)
 
+#define FLOAT_TOLERANCE 0.01
+
 command_parser_ret_t twist_to_differential_drive(const geometry_msgs__msg__Twist *msgin, differential_drive_motor_command_t *msgout) {
     if (msgin == NULL || msgout == NULL) {
         return COMMAND_PARSER_ERROR_GENERIC;
@@ -58,14 +60,13 @@ command_parser_ret_t twist_to_differential_drive(const geometry_msgs__msg__Twist
     }
 
     // Determine motor directions and set PWM ratios
-    // TODO: change to constants
-    if (fabs(left_velocity) <= 0.01) {
+    if (fabs(left_velocity) <= FLOAT_TOLERANCE) {
         msgout->left_dir = MOTOR_STOP;
     } else {
         msgout->left_dir = (left_velocity >= 0) ? MOTOR_FORWARD : MOTOR_BACKWARD;
     }
     
-    if (fabs(right_velocity) <= 0.01) {
+    if (fabs(right_velocity) <= FLOAT_TOLERANCE) {
         msgout->right_dir = MOTOR_STOP;
     } else {
         msgout->right_dir = (right_velocity >= 0) ? MOTOR_FORWARD : MOTOR_BACKWARD;
