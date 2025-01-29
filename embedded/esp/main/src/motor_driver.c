@@ -26,9 +26,8 @@ void push_to_motor_driver_queue(void *msgin) {
 
 void motor_driver_task(motor_driver_t *driver) {
     if (driver->init() != MOTOR_DRIVER_SUCCESS) {
-        // TOOD: error handler
-        printf("init failed!\n");
-        return;
+        printf("Motor driver init failed. Exiting task...\n");
+	vTaskDelete(NULL);
     }
 
     xQueue = xQueueCreate(MOTOR_DRIVER_QUEUE_SIZE, sizeof(void *));
