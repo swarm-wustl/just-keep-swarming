@@ -131,19 +131,19 @@ void calculate_node_children_locations(int node, const Cell &pos,
     Cell new_pos;
     switch (adj_matrix[node][child]) {
       case LEFT: {
-        new_pos = {pos.x - radius, pos.y};
+        new_pos = {static_cast<size_t>(pos.x - radius), static_cast<size_t>(pos.y)};
         break;
       }
       case RIGHT: {
-        new_pos = {pos.x + radius, pos.y};
+        new_pos = {static_cast<size_t>(pos.x + radius), static_cast<size_t>(pos.y)};
         break;
       }
       case FRONT: {
-        new_pos = {pos.x, pos.y + radius};
+        new_pos = {static_cast<size_t>(pos.x), static_cast<size_t>(pos.y + radius)};
         break;
       }
       case BACK: {
-        new_pos = {pos.x, pos.y - radius};
+        new_pos = {static_cast<size_t>(pos.x), static_cast<size_t>(pos.y - radius)};
         break;
       }
       default:

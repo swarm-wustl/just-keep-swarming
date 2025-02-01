@@ -73,7 +73,7 @@ vector<Cell> astar(const Cell &start, const Cell &goal, const Map &map,
   }
 
   while (!frontier.empty()) {
-    Cell current = {frontier.top().x, frontier.top().y};
+    Cell current = {static_cast<size_t>(frontier.top().x), static_cast<size_t>(frontier.top().y)};
     frontier.pop();
 
     if (current == goal) {

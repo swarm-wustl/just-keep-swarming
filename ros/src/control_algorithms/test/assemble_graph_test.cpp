@@ -55,7 +55,7 @@ TEST(StructureLoading, MobileManipulator) {
   EXPECT_EQ(mat[0][7], FRONT);
   EXPECT_EQ(mat[7][0], FRONT);
 
-  for (size_t i = 8; i < num_robots; i++) {
+  for (int i = 8; i < num_robots; i++) {
     EXPECT_EQ(mat[i - 1][i], BACK);
     EXPECT_EQ(mat[i][i - 1], FRONT);
   }
