@@ -32,6 +32,7 @@ class MultiRobotPathPlannerActionServer : public rclcpp::Node {
 
  private:
   rclcpp_action::Server<MultiRobotPathPlan>::SharedPtr action_server_;
+  rclcpp_action::Server<MultiRobotPathPlan>::SharedPtr action_server_;
 
   rclcpp_action::GoalResponse handle_goal(
       const rclcpp_action::GoalUUID &uuid,

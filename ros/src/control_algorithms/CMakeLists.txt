@@ -15,7 +15,7 @@ find_package(nav_msgs REQUIRED)
 find_package(drone_msg REQUIRED)
 
 rosidl_generate_interfaces(
-  ${PROJECT_NAME} "action/MultiRobotPathPlan.action" "action/Assemble.action"
+  ${PROJECT_NAME} "action/MultiRobotPathPlan.action" "action/Assemble.action" "action/PID.action"
   "msg/GridCell.msg" DEPENDENCIES geometry_msgs)
 
 set(ALGORITHM_SOURCES
