@@ -1,8 +1,8 @@
-string goal_topology
+# Request
+geometry_msgs/Pose target_pose
+uint16 robot_id
 ---
-uint16 error_code
-string error_msg
+# Response
+int16 error_code
 ---
-GridCell[] current_poses
-builtin_interfaces/Duration navigation_time
-int32 num_goals_reached
+# Feedback
