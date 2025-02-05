@@ -26,10 +26,17 @@ def compile_sdf(content: str, subs: Dict[str, str]) -> str:
     return result
 
 
-def compile_sdf_file(filename: str, subs: dict) -> str:
-    """Calls `compile_sdf` on a given file"""
+def compile_sdf_file(filename: str, subs: dict, remove_xml_tag: bool = False) -> str:
+    """
+    Calls `compile_sdf` on a given file
+
+    :param bool remove_xml_tag If true, removes the `<?xml ... >` tag from the file
+    """
     try:
         with open(filename, "r", encoding="utf-8") as f:
-            return compile_sdf(f.read(), subs)
+            file = f.read()
+            if remove_xml_tag:
+                file = file.replace('<?xml version="1.0"?>\n', "")
+            return compile_sdf(file, subs)
     except IOError as e:
         raise IOError(f"Error reading file {filename}: {e}") from e

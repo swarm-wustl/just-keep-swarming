@@ -23,7 +23,7 @@ Cell pose_to_cell(geometry_msgs::msg::Pose pose,
       static_cast<int>(((y + static_cast<float>((og_map.info.height / 2.0)) /
                                  og_map.info.resolution)));
 
-  return {cell_x, cell_y};
+  return {static_cast<size_t>(cell_x), static_cast<size_t>(cell_y)};
 }
 
 Map create_map(nav_msgs::msg::OccupancyGrid const &og_map) {
@@ -35,11 +35,11 @@ Map create_map(nav_msgs::msg::OccupancyGrid const &og_map) {
   int height = og_map.info.height;
 
   for (int i = 0; i < height; i++) {
-    for (int j = 0; j < width; j++) {
+    for (int j = 0; j < width; ++j) {
       row.push_back(og_map.data.at(i * width + j));
     }
     map.push_back(row);
-    row.empty();
+    row.clear();
   }
   return map;
 }
@@ -198,7 +198,8 @@ void MultiRobotPathPlannerActionServer::execute(
   //     {0, 0, 0, 0, 0, 0, 0, 0, 0, 0},  // .
   // };
 
-  bool changed = obstacle_inflate(&map, 1);
+  // bool changed = obstacle_inflate(&map, 1);
+  obstacle_inflate(&map, 1);
   print_multi_map(map, robots);
 
   auto start_time = this->now();
@@ -244,7 +245,7 @@ void MultiRobotPathPlannerActionServer::execute(
     std::unordered_set<int> passed_j = {};
 
     while (passed_j.size() < robots.size()) {
-      for (int j = 0; j < plan[i].size(); ++j) {
+      for (int j = 0; j < static_cast<int>(plan[i].size()); ++j) {
         // the robot has already got to its position
         if (passed_j.find(j) != passed_j.end()) continue;
 
@@ -266,8 +267,8 @@ void MultiRobotPathPlannerActionServer::execute(
 
         // if the stuff is close enuf, then mark in the set that robot j has
         // reach its target, which will then be skipped above.
-        if (abs(cx - tx) <= this->cut_off_dist &&
-            abs(cy - ty) <= this->cut_off_dist) {
+        if (std::fabs(cx - tx) <= this->cut_off_dist &&
+          std::fabs(cy - ty) <= this->cut_off_dist) {
           passed_j.insert(j);
         }
 

@@ -38,6 +38,17 @@ def test_compile_sdf_file(tmpdir):
     assert result == "Hello World!"
 
 
+def test_remove_xml_tag(tmpdir):
+    # Create a temporary file with sample content
+    d = tmpdir.mkdir("sub")
+    filename = d.join("test_file.sdf")
+    with open(filename, "w", encoding="utf-8") as f:
+        f.write('<?xml version="1.0"?>\nHello {% NAME %}!')
+    subs = {"NAME": "World"}
+    result = compile_sdf_file(str(filename), subs, remove_xml_tag=True)
+    assert result == "Hello World!"
+
+
 def test_compile_sdf_file_read_error(tmpdir):
     filename = str(tmpdir.join("non_existent_file.sdf"))
     subs = {"NAME": "World"}

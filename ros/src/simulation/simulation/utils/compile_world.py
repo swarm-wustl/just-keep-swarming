@@ -80,6 +80,7 @@ def compile_robots(
                 "POSE": poses[n],
                 "WHEEL_SEPARATION": wheel_separation,
             },
+            remove_xml_tag=True,
         )
         for n in range(n_robots)
     ]
@@ -119,7 +120,7 @@ def compile_robot_world(**kwargs) -> None:
         params, wheel_separation, poses, n_robots, kwargs["robot_sdf_filename"]
     )
     compiled_world = generate_preamble() + compile_sdf_file(
-        kwargs["world_sdf_filename"], {"ROBOTS": robots}
+        kwargs["world_sdf_filename"], {"ROBOTS": robots}, remove_xml_tag=True
     )
     write_compiled_world(kwargs["output_filename"], compiled_world)
 
