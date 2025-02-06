@@ -62,6 +62,24 @@ install(
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION bin)
 
+# === PID Action Server ===
+add_library(pid_action_server SHARED src/pid_action_server.cpp)
+target_include_directories(
+  pid_action_server
+  PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+          $<INSTALL_INTERFACE:include>
+          ${CMAKE_CURRENT_SOURCE_DIR}/include/control_algorithms/algorithms)
+ament_target_dependencies(pid_action_server "rclcpp" "rclcpp_action"
+                          "rclcpp_components" "nav_msgs")
+rclcpp_components_register_node(
+  pid_action_server PLUGIN "control_algorithms::PIDActionServer"
+  EXECUTABLE demo_pid_action_server)
+install(
+  TARGETS pid_action_server
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION bin)
+
 # === MRPP Action Client ===
 add_library(
   mrpp_action_client SHARED
@@ -105,6 +123,7 @@ rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME}
 target_link_libraries(mrpp_action_server "${cpp_typesupport_target}")
 target_link_libraries(mrpp_action_client "${cpp_typesupport_target}")
 target_link_libraries(asm_action_server "${cpp_typesupport_target}")
+target_link_libraries(pid_action_server "${cpp_typesupport_target}")
 target_link_libraries(assembler_action_client "${cpp_typesupport_target}")
 
 # === Testing ===
@@ -124,6 +143,7 @@ if(BUILD_TESTING)
               ${CMAKE_CURRENT_SOURCE_DIR}/include/control_algorithms/algorithms)
 
     target_link_libraries(${PROJECT_NAME}_${TEST} asm_action_server
+                          pid_action_server
                           mrpp_action_server)
   endforeach()
 endif()
