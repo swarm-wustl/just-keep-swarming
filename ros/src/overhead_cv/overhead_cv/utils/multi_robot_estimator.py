@@ -9,18 +9,25 @@ from overhead_cv.utils.robot_estimator import RobotStateEstimator
 # pylint: disable=too-few-public-methods
 class MultiRobotStateEstimator:
     def __init__(self, q=0.09, r=0.005):
+
+        self.calibrating = True
         self.estimators = {}
         self.q = q
         self.r = r
         self.estimator_id = 0
 
     def update_estimate(self, id2u, zs, dt=1):
+
         if len(zs) > len(self.estimators):
-            for _ in range(len(zs) - len(self.estimators)):
-                self.estimators[self.estimator_id] = RobotStateEstimator(
-                    q=self.q, r=self.r
-                )
-                self.estimator_id += 1
+            if self.calibrating:
+                for _ in range(len(zs) - len(self.estimators)):
+                    self.estimators[self.estimator_id] = RobotStateEstimator(
+                        q=self.q, r=self.r
+                    )
+                    self.estimator_id += 1
+            else:
+                # TODO(seb and joe): handle overflowing when not calibrating # pylint: disable=fixme
+                pass
 
         # TODO(sebtheiler): use new filtered values instead of raw observations # pylint: disable=fixme
         ids = list(self.estimators.keys())
@@ -58,3 +65,21 @@ class MultiRobotStateEstimator:
         for estimator_id in estimator_ids_to_remove:
             print("robot no longer detected!")
             del self.estimators[estimator_id]
+
+    def get_key(self, est_id):
+        return self.estimators[est_id].x[1] * self.estimators[est_id].x[0]
+
+    def assign_new_ids(self):
+        # we will be assigning ids based on row first then column
+        robot_unsorted_list = np.arange(0, self.estimator_id - 1)
+
+        robot_unsorted_list.sort(key=self.get_key)
+
+        # swap robot_unsorted to sorted
+
+        replacement_robots = {}
+
+        for i, val in enumerate(robot_unsorted_list):
+            replacement_robots[val] = self.estimators[i]
+        self.estimators = replacement_robots
+        self.calibrating = False
