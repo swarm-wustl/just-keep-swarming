@@ -1,4 +1,5 @@
 # Request
+std_msgs/Header header
 geometry_msgs/Pose target_pose
 uint16 robot_id
 ---
