@@ -1,0 +1,24 @@
+{
+  "configurations": [
+    {
+      "browse": {
+        "databaseFilename": "${default}",
+        "limitSymbolsToIncludedHeaders": false
+      },
+      "includePath": [
+        "/home/observer/Desktop/swarm2024/just-keep-swarming/ros/install/shared_types/include/**",
+        "/home/observer/Desktop/swarm2024/just-keep-swarming/ros/install/drone_msg/include/**",
+        "/opt/ros/humble/include/**",
+        "/home/observer/Desktop/swarm2024/just-keep-swarming/ros/src/control_algorithms/include/**",
+        "/usr/include/**",
+        "${workspaceFolder}/build/control_algorithms/rosidl_generator_cpp"
+      ],
+      "name": "ROS",
+      "intelliSenseMode": "gcc-x64",
+      "compilerPath": "/usr/bin/gcc",
+      "cStandard": "gnu11",
+      "cppStandard": "c++14"
+    }
+  ],
+  "version": 4
+}

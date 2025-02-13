@@ -11,7 +11,7 @@ command_exists() {
 }
 
 # Check for required tools
-required_tools=("clang-format" "black" "cmake-format" "xmllint" "yamllint" "jq" "cpplint" "colcon")
+required_tools=("clang-format" "black" "cmake-format" "xmllint" "yamllint" "jq" "cpplint")
 for tool in "${required_tools[@]}"; do
     if ! command_exists "$tool"; then
         echo "Error: $tool is not installed. Please install it to use this pre-commit hook."
@@ -33,11 +33,10 @@ fi
 echo "Formatted"
 
 # Format C++ files
-cpp_files=$(echo "$staged_files" | grep -E '\.(cpp|hpp|h)$' || true)
-echo $cpp_files
+cpp_files=$(echo "$staged_files" | grep -E '\.(cpp|c|hpp|h)$' || true)
 if [ -n "$cpp_files" ]; then
     echo "Formatting C++ files..."
-    echo "$cpp_files" | xargs clang-format -i
+    echo "$cpp_files" | xargs clang-format -i --style=google
     git add $cpp_files
 fi
 
@@ -117,8 +116,8 @@ if command_exists "colcon"; then
         cd -
         exit 1
     fi
-fi
 
-cd -
+    cd -
+fi
 
 echo "All files formatted and linted; tests passed"
