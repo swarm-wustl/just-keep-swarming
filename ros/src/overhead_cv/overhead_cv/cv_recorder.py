@@ -19,15 +19,31 @@ from std_msgs.msg import Float32MultiArray
 CAMERA_ID = 0
 DELAY = 1
 
-WINDOW_NAME = "OpenCV QR Code"
+WINDOW_NAME = "Camera Feed"
 
 MAP_WINDOW = "location tracking"
 
 QCD = cv2.QRCodeDetector()
 
 
+def detect_and_draw_boxes(frame, lower_color, upper_color):
+    # Convert frame to HSV color space
+    hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
+
+    cv2.imshow("Masked Image", hsv_frame)
+    # Create a color mask
+    mask = cv2.inRange(hsv_frame, lower_color, upper_color)
+
+    # Find contours from the mask
+    contours, _ = cv2.findContours(mask, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+    return contours, mask
+
+
 # intended to convert points to width and height of sub image
-def calculate_pos(points, conversion, width, height):
+def calculate_pos(cont_points, conversion, width, height):
+
+    x, y, w, h = cv2.boundingRect(cont_points)
+    points = np.array([(x, y), (x + w, y), (x + w, y + h), (x, y + h)])
 
     max_x = max(points[1][0], points[2][0])
     min_x = min(points[0][0], points[3][0])
@@ -59,7 +75,7 @@ class CVRecorder(Node):
         self.display = display_param is True
 
         self.poses_emit = self.create_publisher(
-            Float32MultiArray, "multi_array_pos", 10
+            Float32MultiArray, "robot_array_pos", 10
         )
 
         # this is the real life size in your chosen unit,
@@ -76,21 +92,32 @@ class CVRecorder(Node):
         self.robot_points = []
         self.current_robot_points = []
 
-    # changes the point to be relative to the center
-
+    # deprecated
     # publishes points and converts ids and points to publish array
     def emit_points(self, ids, points):
-        if len(ids) == 0:
+        if len(points) == 0:
             return
         submit = []
-        num = len(ids)
+        num = len(points)
         for i in range(num):
-            submit.extend([points[i][0], points[i][1], ids[i]])
+            submit.extend([ids[i], points[i][0], points[i][1]])
 
         submit_data = Float32MultiArray()
         submit_data.data = submit
 
-        self.poses_emit.publish((submit_data))
+        self.poses_emit.publish(submit_data)
+
+    def emit_positions(self, points):
+        submit = []
+        num = len(points)
+        for i in range(num):
+            submit.extend([float(points[i][0]), float(points[i][1])])
+
+        # print(submit)
+        submit_data = Float32MultiArray()
+        submit_data.data = submit
+
+        self.poses_emit.publish(submit_data)
 
     def display_images(self, map_image, frame):
         for point in self.robot_points:
@@ -107,36 +134,31 @@ class CVRecorder(Node):
         cv2.imshow(MAP_WINDOW, map_image)
         cv2.waitKey(1)
 
-    def analyze_scan(self, decoded_info, points, dim, frame):
+    def analyze_scan(self, points, dim, frame):
         packet_points = []
-        ids = []
         if self.display:
             self.current_robot_points = []
-        for code, qr_points in zip(decoded_info, points):
-
-            if not code:
+        for rob_points in points:
+            if cv2.contourArea(rob_points) < 200:
                 continue
             color = (0, 255, 0)
 
             point, scaled_mesh = calculate_pos(
-                points=qr_points,
+                cont_points=rob_points,
                 conversion=self.conversion,
                 width=dim[0],
                 height=dim[1],
             )
             if self.display:
-                frame = cv2.polylines(frame, [qr_points.astype(int)], True, color, 8)
+                frame = cv2.polylines(frame, [rob_points.astype(int)], True, color, 8)
 
                 self.robot_points.append(point)
                 self.current_robot_points.append(scaled_mesh)
 
-            relative_point = (
-                point[0] - dim[0] / 2,
-                point[1] - dim[1] / 2,
-            )
+            relative_point = (point[0], point[1])  # - dim[0] / 2,  # - dim[1] / 2,
+            # print(relative_point)
             packet_points.append(relative_point)
-            ids.append(float(code))
-        return ids, packet_points
+        return packet_points
 
     # scans QR and gets data from it
     def scan_code_callback(self, data):
@@ -147,26 +169,31 @@ class CVRecorder(Node):
 
         frame_height = len(frame)
         packet_points = []
-        ids = []
 
-        ret_qr, decoded_info, points, _ = QCD.detectAndDecodeMulti(frame)
-        if ret_qr:
+        lower_color = np.array([0, 124, 0])  # Adjust as needed
+        upper_color = np.array([18, 255, 255])
+        robot_points, mask = detect_and_draw_boxes(frame, lower_color, upper_color)
 
-            ids, packet_points = self.analyze_scan(
-                decoded_info=decoded_info,
-                points=points,
+        if robot_points:
+
+            packet_points = self.analyze_scan(
+                points=robot_points,
                 dim=(frame_width, frame_height),
                 frame=frame,
             )
 
-            self.emit_points(ids, packet_points)
+            self.emit_positions(packet_points)
+
         if self.display:
             map_image = np.full(
                 (self.conversion[1], self.conversion[0], 3),
                 [255, 255, 255],
                 dtype=np.uint8,
             )
+            result = cv2.bitwise_and(frame, frame, mask=mask)
 
+            cv2.imshow("Mask", mask)
+            cv2.imshow("Masked Image", result)
             self.display_images(frame=frame, map_image=map_image)
 
 

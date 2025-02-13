@@ -17,7 +17,32 @@ good-names=i,
            ex,
            Run,
            _,
-           package_name 
+           package_name ,
+           x,
+           y,
+           X,
+           Y,
+           z,
+           Z,
+           dt, 
+           q,
+           r,
+           P,
+           u,
+           K,
+           S,
+           zs,
+           w,
+           h,
+           R,
+           P_prior,
+           n,
+           Q,
+           B,
+           F,
+           P_prev,
+           N,
+           J
 
 [SIMILARITIES]
 # Minimum lines number of a similarity.
@@ -35,5 +60,6 @@ ignore-imports=yes
 
 
 [MESSAGES CONTROL]
-disable=missing-docstring,assigning-non-slot,unspecified-encoding,no-name-in-module
+disable=missing-docstring,assigning-non-slot,unspecified-encoding,no-name-in-module,duplicate-code
+
 

@@ -1,6 +1,6 @@
 from setuptools import find_packages, setup
 
-package_name = "overhead_cv"
+package_name = "map_maker"
 
 setup(
     name=package_name,
@@ -18,9 +18,6 @@ setup(
     license="Apache-2.0",
     tests_require=["pytest"],
     entry_points={
-        "console_scripts": [
-            "obs_qr=overhead_cv.cv_recorder:main",
-            "position_estimator=overhead_cv.position_estimator:main",
-        ],
+        "console_scripts": ["map_maker=map_maker.map_maker:main"],
     },
 )

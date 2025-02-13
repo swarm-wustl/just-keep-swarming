@@ -6,7 +6,7 @@ lint_commit_msg() {
     local type_pattern="^(feat|fix|docs|style|refactor|test|chore)"
     local scope_pattern="\([a-z0-9_-]+\)"
     local subject_pattern=": [A-Z].*[^\.]$"
-    local full_pattern="$type_pattern$scope_pattern$subject_pattern"
+    local full_pattern="($type_pattern$scope_pattern$subject_pattern)|^Merge"
 
     if ! [[ $msg =~ $full_pattern ]]; then
         echo "Error: Commit message does not match the required format."
