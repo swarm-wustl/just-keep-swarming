@@ -17,6 +17,8 @@ class PositionEstimator(Node):
     def __init__(self):
         super().__init__("position_estimator")
 
+        self.calibrating = True
+
         self.declare_parameter("q", 0.09)
         q = self.get_parameter("q").value
         self.declare_parameter("r", 0.005)
@@ -52,6 +54,13 @@ class PositionEstimator(Node):
         )
 
         self.multi_robot_estimator = MultiRobotStateEstimator(q=q, r=r)
+
+        # will calibrate for 3 seconds
+        self.create_timer(3.0, self.stop_calibrating)
+
+    def stop_calibrating(self):
+        self.calibrating = False
+        self.multi_robot_estimator.assign_new_ids()
 
     def get_request(self):
         req = CamMeta.Request()
