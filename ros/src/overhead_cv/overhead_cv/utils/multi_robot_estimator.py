@@ -9,7 +9,6 @@ from overhead_cv.utils.robot_estimator import RobotStateEstimator
 # pylint: disable=too-few-public-methods
 class MultiRobotStateEstimator:
     def __init__(self, q=0.09, r=0.005):
-
         self.calibrating = True
         self.estimators = {}
         self.q = q
@@ -17,7 +16,6 @@ class MultiRobotStateEstimator:
         self.estimator_id = 0
 
     def update_estimate(self, id2u, zs, dt=1):
-
         if len(zs) > len(self.estimators):
             if self.calibrating:
                 for _ in range(len(zs) - len(self.estimators)):
