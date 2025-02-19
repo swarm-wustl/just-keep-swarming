@@ -1,44 +1,21 @@
-### OverheadCV
+# OverheadCV
 
-## Quick Summary?
-
-Reads a video stream, outputs and tracks the qr codes, and publishes the positions and id to an array.
+Reads a video stream, tracks and filters the robot positions, and publishes the estimated positions and ids
 
 The published array is formatted as so
 
 [x1, y1, id1, x2, y2, id2, ... ]
 
-Read robot will have a qr attached correlating to its id in the swarm
+The node camera_feed will run the publishing of camera
 
-Camera_feed will run the publishing of camera
+The package map_maker will handle producing an OG grid
 
-overhead_cv will handle scanning qr codes
-
-map_maker will handle producing an OG grid
-
-
-
-## Setup
-
-Source in /ros
-
-```
-source install/setup.bash
-```
-
-Packages
+## Dependencies
 
 ```
 pip3 install opencv-python
 ```
 
-build in /ros directory
-
-```
-colcon build --packages-select overhead_cv
-colcon build --packages-select camera_feed
-colcon build --packages-select map_maker 
-```
 ## Hardware Description
 
 Camera data:
@@ -57,21 +34,22 @@ In /ros
 In the future we need to make a yaml file for inputting parameters
 
 ```
-ros2 run camera_feed camera_feed --ros-args -p delay:=0.002 -p focal_length:=0.013387 -p cam_height:=1.2573 -p fov_x:=130.0 -p fov_y:=103.0 -p resolution_x:=1920.0 -p resolution_y:=1080.0 -p cam_input:=0
+ros2 run overhead_cv camera_feed --ros-args -p delay:=0.002 -p focal_length:=0.013387 -p cam_height:=1.2573 -p fov_x:=130.0 -p fov_y:=103.0 -p resolution_x:=1920.0 -p resolution_y:=1080.0 -p cam_input:=0
 
-ros2 run overhead_cv obs_qr --ros-args -p display:=true 
+ros2 run overhead_cv obs_qr --ros-args -p display:=true
 
 ros2 run overhead_cv position_estimator --ros-args -p q:=1.0 -p r:=5.0 # q and r require tuning
 
 ros2 run map_maker map_maker --ros-args -p resolution:=0.5
 ```
 
-
-
 ## Testimg
 
 Tests can be run with the command below
+
 ```
 colcon test --packages-select overhead_cv --event-handlers console_cohesion+
 ```
+
 unit tests can be found in the /test directory for each package
+

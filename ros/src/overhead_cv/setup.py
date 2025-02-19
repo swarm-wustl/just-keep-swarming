@@ -19,6 +19,7 @@ setup(
     tests_require=["pytest"],
     entry_points={
         "console_scripts": [
+            "camera_feed=overhead_cv.camera_feed:main",
             "obs_qr=overhead_cv.cv_recorder:main",
             "position_estimator=overhead_cv.position_estimator:main",
         ],
