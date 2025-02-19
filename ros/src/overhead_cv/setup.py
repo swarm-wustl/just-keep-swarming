@@ -20,7 +20,7 @@ setup(
     entry_points={
         "console_scripts": [
             "camera_feed=overhead_cv.camera_feed:main",
-            "obs_qr=overhead_cv.cv_recorder:main",
+            "robot_tracker=overhead_cv.robot_tracker:main",
             "position_estimator=overhead_cv.position_estimator:main",
         ],
     },

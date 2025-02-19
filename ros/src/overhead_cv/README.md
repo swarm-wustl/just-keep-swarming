@@ -36,7 +36,7 @@ In the future we need to make a yaml file for inputting parameters
 ```
 ros2 run overhead_cv camera_feed --ros-args -p delay:=0.002 -p focal_length:=0.013387 -p cam_height:=1.2573 -p fov_x:=130.0 -p fov_y:=103.0 -p resolution_x:=1920.0 -p resolution_y:=1080.0 -p cam_input:=0
 
-ros2 run overhead_cv obs_qr --ros-args -p display:=true
+ros2 run overhead_cv robot_tracker --ros-args -p display:=true
 
 ros2 run overhead_cv position_estimator --ros-args -p q:=1.0 -p r:=5.0 # q and r require tuning
 

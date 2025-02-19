@@ -42,7 +42,7 @@ class CameraFeed(Node):
             CamMeta, "cam_meta_data", self.get_meta_data
         )
 
-        self.cap = cv2.VideoCapture(f"/dev/video{[self.parameters['cam_input']]}")
+        self.cap = cv2.VideoCapture(f"/dev/video{self.parameters['cam_input']}")
 
         self.video_publisher = self.create_publisher(Image, "/video", 10)
 
