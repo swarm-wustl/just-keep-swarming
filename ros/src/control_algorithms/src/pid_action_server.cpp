@@ -17,10 +17,10 @@
 
 using builtin_interfaces::msg::Time;
 
-static Time angular_time_prev = -1;
+static Time angular_time_prev;
 static double angular_error_prev = 0.0;
 
-static Time linear_time_prev = -1;
+static Time linear_time_prev;
 static double linear_error_prev = 0.0;
 
 #define SEC_TO_NSEC 1000000000.0 
@@ -63,7 +63,7 @@ static double linear_error_to_velocity(double error, Time time_curr) {
 
     // If this is the first packet, don't include a derivative term
     // Otherwise, calculate the derivative based on current and previous values
-    if (linear_time_prev == -1 || time_curr == linear_time_prev) {
+    if (linear_time_prev.sec == 0 || time_curr == linear_time_prev) {
         derivative = 0;
     } else {
         derivative = (error - linear_error_prev) / time_diff;
@@ -133,7 +133,7 @@ void PIDActionServer::execute(const std::shared_ptr<GoalHandlePID> goal_handle) 
     geometry_msgs::msg::Pose current_pose;  // TODO
     const geometry_msgs::msg::Pose &target_pose = goal->target_pose;
 
-    Time current_time = goal->header->stamp;
+    Time current_time = goal->header.stamp;
 
     double current_x = current_pose.position.x;
     double current_y = current_pose.position.y;
