@@ -7,16 +7,16 @@ endif()
 
 # find dependencies
 find_package(ament_cmake REQUIRED)
+find_package(geometry_msgs REQUIRED)
 # uncomment the following section in order to fill in further dependencies
 # manually. find_package(<dependency> REQUIRED)
 
 find_package(rosidl_default_generators REQUIRED)
 
-set(srv_files "srv/CamMeta.srv"
-              # etc
-)
+set(type_files "srv/CamMeta.srv" "msg/RobotPosition.msg")
 
-rosidl_generate_interfaces(${PROJECT_NAME} ${srv_files})
+rosidl_generate_interfaces(${PROJECT_NAME} ${type_files} DEPENDENCIES
+                           geometry_msgs)
 
 ament_export_dependencies(rosidl_default_runtime)
 
