@@ -28,8 +28,14 @@ class AssemblerActionServer : public rclcpp::Node {
       const std::shared_ptr<GoalHandleAssemble> goal_handle);
 
   void handle_accepted(const std::shared_ptr<GoalHandleAssemble> goal_handle);
-
+    
   void execute(const std::shared_ptr<GoalHandleAssemble> goal_handle);
+
+  void id_request(const std::shared_ptr<shared_types::srv::IdRequest::Request> request,
+          std::shared_ptr<shared_types::srv::IdRequest::Response> response);
+
+  int counter = 0;
+
 };
 
 }  // namespace control_algorithms

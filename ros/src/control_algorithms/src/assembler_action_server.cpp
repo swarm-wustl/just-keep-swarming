@@ -20,6 +20,10 @@ AssemblerActionServer::AssemblerActionServer(const rclcpp::NodeOptions &options)
       std::bind(&AssemblerActionServer::handle_goal, this, _1, _2),
       std::bind(&AssemblerActionServer::handle_cancel, this, _1),
       std::bind(&AssemblerActionServer::handle_accepted, this, _1));
+    
+    rclcpp::Service<shared_types::srv::IdRequest>::SharedPtr id_service = 
+      this->create_service<shared_types::srv::IdRequest>("public_id_request",id_request);
+
 
   RCLCPP_INFO(this->get_logger(), "Assembler action server initialized");
 }
@@ -98,6 +102,12 @@ void AssemblerActionServer::execute(
     goal_handle->succeed(result);
     RCLCPP_INFO(this->get_logger(), "Goal succeeded");
   }
+}
+void id_request(const std::shared_ptr<shared_types::srv::IdRequest::Request> request,
+          std::shared_ptr<shared_types::srv::IdRequest::Response> response){
+          //assuming the ID of the control plan is synced with the observation ID
+          response->id = this->counter;
+          this->counter++;  
 }
 
 }  // namespace control_algorithms
