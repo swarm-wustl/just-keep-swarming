@@ -15,6 +15,7 @@
 #define Kp_linear 1.0
 #define Kd_linear 0.3
 
+// TODO: move to <rclcpp/time.h>
 using builtin_interfaces::msg::Time;
 
 static Time angular_time_prev;
