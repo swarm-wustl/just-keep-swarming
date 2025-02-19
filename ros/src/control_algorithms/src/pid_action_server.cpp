@@ -15,35 +15,40 @@
 #define Kp_linear 1.0
 #define Kd_linear 0.3
 
-static int32_t angular_time_prev = -1;
+using builtin_interfaces::msg::Time;
+
+static Time angular_time_prev = -1;
 static double angular_error_prev = 0.0;
 
-static int32_t linear_time_prev = -1;
+static Time linear_time_prev = -1;
 static double linear_error_prev = 0.0;
 
-static double delta_time(builtin_interfaces::msg::Time final, builtin_interfaces::msg::Time initial) {
-    const double NSEC_TO_SEC = 1000000000.0;
+#define SEC_TO_NSEC 1000000000.0 
 
+static double delta_time(Time final, Time initial) {
     int32_t sec = final.sec - initial.sec;
     int32_t nsec = final.nanosec - initial.nanosec;
 
     if (nsec < 0) {
         sec -= 1;
-        nsec += NSEC_TO_SEC;
+        nsec += SEC_TO_NSEC;
     }
 
-    return sec + (nsec / NSEC_TO_SEC);
+    return sec + (nsec / SEC_TO_NSEC);
 }
 
-static double angular_error_to_velocity(double error, int32_t time_curr) { 
+// TODO: think about the design of passing in current time but using global prev time... kinda weird
+
+static double angular_error_to_velocity(double error, Time time_curr) { 
     double derivative;
+    double time_diff = delta_time(time_curr, angular_time_prev);
 
     // If this is the first packet, don't include a derivative term
     // Otherwise, calculate the derivative based on current and previous values
-    if (angular_time_prev == -1 || time_curr == angular_time_prev) {
+    if (angular_time_prev.sec == 0 || time_curr == angular_time_prev) {
         derivative = 0;
     } else {
-        derivative = (error - angular_error_prev) / (time_curr - angular_time_prev);
+        derivative = (error - angular_error_prev) / time_diff;
     }
 
     angular_time_prev = time_curr;
@@ -52,15 +57,16 @@ static double angular_error_to_velocity(double error, int32_t time_curr) {
     return (Kp_angular * error) + (Kd_angular * derivative);
 }
 
-static double linear_error_to_velocity(double error, int32_t time_curr) {
+static double linear_error_to_velocity(double error, Time time_curr) {
     double derivative;
+    double time_diff = delta_time(time_curr, linear_time_prev);
 
     // If this is the first packet, don't include a derivative term
     // Otherwise, calculate the derivative based on current and previous values
     if (linear_time_prev == -1 || time_curr == linear_time_prev) {
         derivative = 0;
     } else {
-        derivative = (error - linear_error_prev) / (time_curr - linear_time_prev);
+        derivative = (error - linear_error_prev) / time_diff;
     }
 
     linear_time_prev = time_curr;
@@ -72,7 +78,6 @@ static double linear_error_to_velocity(double error, int32_t time_curr) {
 // NOTE: The robot is assumed to only rotate about the z-axis
 // Therefore, all quaternion input data should have x=0, y=0, w and z are nonzero
 static double quaternion_to_yaw(geometry_msgs::msg::Quaternion pos) {
-
     return atan2(2.0 * (pos.w * pos.z + pos.x * pos.y), 1.0 - 2.0 * (pos.y * pos.y + pos.z * pos.z));
 }
 
@@ -128,7 +133,7 @@ void PIDActionServer::execute(const std::shared_ptr<GoalHandlePID> goal_handle) 
     geometry_msgs::msg::Pose current_pose;  // TODO
     const geometry_msgs::msg::Pose &target_pose = goal->target_pose;
 
-    builtin_interfaces::msg::Time current_time = goal->header->stamp;
+    Time current_time = goal->header->stamp;
 
     double current_x = current_pose.position.x;
     double current_y = current_pose.position.y;
