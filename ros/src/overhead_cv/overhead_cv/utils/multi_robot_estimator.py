@@ -27,8 +27,7 @@ class MultiRobotStateEstimator:
         for robot_i, measurement_assignment in enumerate(assignments):
             z = Z[measurement_assignment]
             z = np.array([z.x, z.y])
-            if z is None:
-                continue
+            print(f"robot at {self.estimators[robot_i].x} was measured at {z}")
 
             u = actions.get(robot_i, np.zeros(2))
             self.estimators[robot_i].update_estimate(u, z, dt)

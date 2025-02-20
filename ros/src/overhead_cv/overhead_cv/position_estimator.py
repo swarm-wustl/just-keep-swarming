@@ -110,10 +110,8 @@ class PositionEstimator(Node):
         assert self.num_robots == len(self.multi_robot_estimator.estimators)
 
         for i, estimator in enumerate(self.multi_robot_estimator.estimators):
-            real_pos = pixel_to_world((estimator.x[0], estimator.x[1]), self.cam_meta)
-
             pose = Pose(
-                position=Point(x=real_pos[0], y=real_pos[1]),
+                position=Point(x=estimator.x[0], y=estimator.x[1]),
                 orientation=Quaternion(
                     x=0.0, y=0.0, z=0.0, w=0.0
                 ),  # TODO(eugene): orientation goes here

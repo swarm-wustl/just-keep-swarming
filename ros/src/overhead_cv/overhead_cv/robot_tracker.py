@@ -40,7 +40,7 @@ class RobotTracker(Node):
 
         self.tracked_points = []  # Historical positions
         self.current_contours_points = []  # Current frame's contour data
-        print("Tracking robots")
+        self.get_logger().info("Tracking robots")
 
     def emit_positions(self, points):
         """

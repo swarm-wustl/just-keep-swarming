@@ -48,7 +48,7 @@ class CameraFeed(Node):
 
         self.timer = self.create_timer(self.parameters["delay"], self.publish_video)
 
-        print("Publishing camera on /video")
+        self.get_logger().info("Publishing camera on /video")
 
     def check_params(self):
         if (
@@ -107,7 +107,7 @@ class CameraFeed(Node):
 
         except CvBridgeError as error:
             rclpy.shutdown()
-            print(error)
+            self.get_logger().warning(error)
 
 
 def main(args=None):
