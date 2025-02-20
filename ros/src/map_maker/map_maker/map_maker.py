@@ -1,22 +1,18 @@
+# pylint: skip-file
+# This file is so busted we're not pylinting it
 from typing import List
 
 import rclpy
 import rclpy.exceptions
 import rclpy.executors
 import rclpy.logging
-
+from geometry_msgs.msg import Pose, PoseArray
+from nav_msgs.msg import MapMetaData, OccupancyGrid
 from rclpy.node import Node
 
 # pylint: disable=import-error
 from shared_types.srv import CamMeta
-
-from nav_msgs.msg import OccupancyGrid, MapMetaData
-
-from std_msgs.msg import Header
-
-from std_msgs.msg import Float32MultiArray
-
-from geometry_msgs.msg import Pose, PoseArray
+from std_msgs.msg import Float32MultiArray, Header
 
 from .pixel_to_real import pixel_to_world
 
@@ -164,7 +160,7 @@ class MapMaker(Node):
             # old stuff
             # real_point = pixel_to_world(pixel_coords=robo_point, params=self.map_params)
 
-            real_point = robo_point  # converted in cv_recorder
+            real_point = robo_point  # converted in robot_tracker
 
             resoluion = self.og_map.info.resolution
             real_width = self.og_map.info.width * resoluion

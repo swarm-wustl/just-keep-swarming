@@ -6,11 +6,11 @@
 #include <vector>
 
 #include "control_algorithms/action/multi_robot_path_plan.hpp"
-#include "drone_msg/msg/robot_position.hpp"
 #include "geometry_msgs/msg/pose_array.hpp"
 #include "nav_msgs/msg/occupancy_grid.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
+#include "shared_types/msg/robot_position.hpp"
 
 namespace control_algorithms {
 
@@ -32,7 +32,7 @@ class MultiRobotPathPlannerActionServer : public rclcpp::Node {
 
  private:
   rclcpp_action::Server<MultiRobotPathPlan>::SharedPtr action_server_;
-  
+
   rclcpp_action::GoalResponse handle_goal(
       const rclcpp_action::GoalUUID &uuid,
       std::shared_ptr<const MultiRobotPathPlan::Goal> goal);
@@ -62,7 +62,7 @@ class MultiRobotPathPlannerActionServer : public rclcpp::Node {
   // updated, revert if wrong (Jaxon)
   void update_poses(const geometry_msgs::msg::PoseArray &msg);
 
-  rclcpp::Publisher<drone_msg::msg::RobotPosition>::SharedPtr robot_full_pub;
+  rclcpp::Publisher<shared_types::msg::RobotPosition>::SharedPtr robot_full_pub;
 
   const double cut_off_dist = 0.05;
 };

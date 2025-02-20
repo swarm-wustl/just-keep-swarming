@@ -13,11 +13,17 @@ find_package(rosidl_default_generators REQUIRED)
 find_package(geometry_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
-find_package(drone_msg REQUIRED)
+find_package(shared_types REQUIRED)
 
 rosidl_generate_interfaces(
-  ${PROJECT_NAME} "action/MultiRobotPathPlan.action" "action/Assemble.action" "action/PID.action"
-  "msg/GridCell.msg" DEPENDENCIES geometry_msgs std_msgs)
+  ${PROJECT_NAME}
+  "action/MultiRobotPathPlan.action"
+  "action/Assemble.action"
+  "action/PID.action"
+  "msg/GridCell.msg"
+  DEPENDENCIES
+  geometry_msgs
+  std_msgs)
 
 set(ALGORITHM_SOURCES
     src/algorithms/common.cpp src/algorithms/astar.cpp src/algorithms/sstar.cpp
@@ -33,7 +39,7 @@ target_include_directories(
           $<INSTALL_INTERFACE:include>
           ${CMAKE_CURRENT_SOURCE_DIR}/include/control_algorithms/algorithms)
 ament_target_dependencies(mrpp_action_server "rclcpp" "rclcpp_action"
-                          "rclcpp_components" "nav_msgs" "drone_msg")
+                          "rclcpp_components" "nav_msgs" "shared_types")
 rclcpp_components_register_node(
   mrpp_action_server PLUGIN
   "control_algorithms::MultiRobotPathPlannerActionServer" EXECUTABLE
@@ -73,8 +79,8 @@ target_include_directories(
 ament_target_dependencies(pid_action_server "rclcpp" "rclcpp_action"
                           "rclcpp_components" "nav_msgs")
 rclcpp_components_register_node(
-  pid_action_server PLUGIN "control_algorithms::PIDActionServer"
-  EXECUTABLE demo_pid_action_server)
+  pid_action_server PLUGIN "control_algorithms::PIDActionServer" EXECUTABLE
+  demo_pid_action_server)
 install(
   TARGETS pid_action_server
   ARCHIVE DESTINATION lib
@@ -144,8 +150,7 @@ if(BUILD_TESTING)
               ${CMAKE_CURRENT_SOURCE_DIR}/include/control_algorithms/algorithms)
 
     target_link_libraries(${PROJECT_NAME}_${TEST} asm_action_server
-                          pid_action_server
-                          mrpp_action_server)
+                          pid_action_server mrpp_action_server)
   endforeach()
 endif()
 
