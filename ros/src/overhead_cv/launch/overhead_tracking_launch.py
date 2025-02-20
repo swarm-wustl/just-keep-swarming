@@ -4,6 +4,7 @@ import launch
 
 
 def generate_launch_description():
+    N = 2
     return launch.LaunchDescription(
         [
             # Camera Feed Node
@@ -33,14 +34,14 @@ def generate_launch_description():
                 parameters=[{"display": True}],
                 output="screen",
             ),
-            # # Position Estimator Node
-            # launch_ros.actions.Node(
-            #     package="overhead_cv",
-            #     executable="position_estimator",
-            #     name="position_estimator",
-            #     parameters=[{"q": 1.0, "r": 5.0}],  # Require tuning
-            #     output="screen",
-            # ),
+            # Position Estimator Node
+            launch_ros.actions.Node(
+                package="overhead_cv",
+                executable="position_estimator",
+                name="position_estimator",
+                parameters=[{"N": N, "q": 1.0, "r": 5.0}],  # Require tuning
+                output="screen",
+            ),
             # # Map Maker Node
             # launch_ros.actions.Node(
             #     package="map_maker",

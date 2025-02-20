@@ -1,5 +1,7 @@
 import time
+
 import numpy as np
+
 from overhead_cv.utils.kalman_filter import kalman_filter
 
 
@@ -13,7 +15,7 @@ class RobotStateEstimator:
         self.num_estimates_received = 0
         self.last_estimate_received_at = 0
 
-    def update_estimate(self, u, z, dt=1, save=True):
+    def update_estimate(self, u, z, dt=1.0, save=True):
         x, P = kalman_filter(self.x, u, z, self.P, dt, self.q, self.r)
         if save:
             self.x = x

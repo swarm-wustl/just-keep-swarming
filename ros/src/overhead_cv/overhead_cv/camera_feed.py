@@ -74,8 +74,8 @@ class CameraFeed(Node):
         response.resolution_x = self.parameters["resolution_x"] * conv
         response.resolution_y = self.parameters["resolution_y"] * conv
 
-        response.width = self.parameters["shape"][0]
-        response.height = self.parameters["shape"][1]
+        response.width = float(self.parameters["shape"][0])
+        response.height = float(self.parameters["shape"][1])
 
         return response
 
