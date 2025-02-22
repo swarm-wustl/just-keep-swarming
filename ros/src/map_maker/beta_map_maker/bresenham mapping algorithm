@@ -1,0 +1,78 @@
+import math
+import numpy as np
+
+# define grid dimensions and resolution
+grid_size = (240, 240)
+resolution = 0.0245
+
+# initialize occupancy grid
+occupancy_grid = np.zeros(grid_size)
+
+def polar_to_cartesian(sensor_x, sensor_y, sensor_theta, distance):
+    x_point = sensor_x + distance * math.cos(sensor_theta)
+    y_point = sensor_y + distance * math.sin(sensor_theta)
+    return x_point, y_point
+
+def world_to_grid(x, y, grid_origin, resolution):
+    """
+    Convert world coordinates to grid coordinates
+    grid origin: (x, y) coordinates of the grid's bottom-left corner in world frame
+    """
+
+    i = int((x - grid_origin[0]) / resolution)
+    j = int((y - grid_origin[1]) / resolution)
+    return i, j
+
+def bresenham_line(x0, y0, x1, y1):
+    """
+    Bresenham's line algorithm to get all points on a line
+    returns a list of (i, j) tuples
+    """
+    cells = []
+    dx = abs(x1 - x0)
+    dy = abs(y1 - y0)
+    x, y = x0, y0
+    sx = -1 if x0 > x1 else 1
+    sy = -1 if y0 > y1 else 1
+    if dx > dy:
+        err = dx / 2.0
+        while x != x1:
+            cells.append((x, y))
+            err -= dy
+            if err < 0:
+                y += sy
+                err += dx
+            x += sx
+    else:
+        err = dy / 2.0
+        while y! = y1:
+            cells.append((x, y))
+            err -= dx
+            if err < 0:
+                x += sx
+                err += dy
+            y += sy
+    cells.append((x, y))
+    return cells
+
+# update parameters for occupancy updates
+free_update = -0.4 # decrease the occupancy value for free cells
+occ_update = 0.8 # increase the occupancy value for occupied cells
+
+def update_occupancy_grid(occupancy_grid, sensor_pos, point, grid_origin, resolution):
+    """
+    Update the occupancy grid using the sensor measurement
+    sensor_pos: (x, y) coordinates of the sensor in world frame
+    point: (x, y) coordinates of the point in world frame
+    """
+    # convert sensor and point coordinates to grid coordinates
+    i0, j0 = world_to_grid(sensor_pos[0], sensor_pos[1], grid_origin, resolution)
+    i1, j1 = world_to_grid(point[0], point[1], grid_origin, resolution)
+
+    # get all cells on the line between the sensor and the point
+    cells = bresenham_line(i0, j0, i1, j1)
+    if len(cells) > 1:
+        for cell in cells:
+            occupancy_grid[cell] += free_update
+    # update the endpoint of the measurement
+    occupancy_grid[cells[-1]] += occ_update
