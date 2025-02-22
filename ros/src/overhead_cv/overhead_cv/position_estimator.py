@@ -1,131 +1,96 @@
-import numpy as np
-from rclpy.node import Node
-from std_msgs.msg import Float32MultiArray
-from geometry_msgs.msg import Pose, PoseArray
 import rclpy
+from geometry_msgs.msg import Point, Pose, PoseStamped, Quaternion
+from rclpy.node import Node
+from shared_types.msg import RobotPoints
+from std_msgs.msg import Header
 
-# pylint: disable=import-error
-from shared_types.srv import CamMeta
-
-from overhead_cv.utils.pose_convert import create_pose, create_quat, create_point
 from overhead_cv.utils.multi_robot_estimator import MultiRobotStateEstimator
 
-from .pixel_to_real import pixel_to_world
+from .utils.filtering_types import Measurement
 
 
 class PositionEstimator(Node):
     def __init__(self):
         super().__init__("position_estimator")
 
-        self.calibrating = True
+        self.prev_time = self.get_clock().now()
 
+        # Num robots
+        self.declare_parameter("N", 0)
+        self.num_robots = self.get_parameter("N").value
+        if not self.num_robots:
+            raise ValueError("N must be specified")
+
+        # MultiRobotStateEstimator
         self.declare_parameter("q", 0.09)
-        q = self.get_parameter("q").value
+        q = self.get_parameter("q").value or 0.09
         self.declare_parameter("r", 0.005)
-        r = self.get_parameter("r").value
+        r = self.get_parameter("r").value or 0.05
+        self.multi_robot_estimator = MultiRobotStateEstimator(self.num_robots, q=q, r=r)
 
-        # MAKE THIS NOT HARDCODED
-        self.num_robots = 4
-
-        self.meta_client = self.create_client(CamMeta, "cam_meta_estimator")
-
-        while not self.meta_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info("also waiting for cam node")
-
-        future = self.get_request()
-
-        rclpy.spin_until_future_complete(self, future)
-
-        response = future.result()
-
-        self.cam_meta = {
-            "focal_length": response.focal_length,
-            "cam_height": response.cam_height,
-            "fov": (response.fov_x, response.fov_y),
-            "resolution": (response.resolution_x, response.resolution_y),
-        }
-        self.raw_poses_sub = self.create_subscription(
-            Float32MultiArray, "robot_array_pos", self.estimate_poses, 10
+        # Process data
+        self.unfiltered_points_sub = self.create_subscription(
+            RobotPoints, "robot_observations", self.estimate_poses, 10
         )
 
-        # this has been changed from floatarray to posearray
-        self.filtered_poses_pub = self.create_publisher(
-            PoseArray, "filtered_robot_array_pos", 10
+        # `num_robots` publishers
+        self._publishers = [
+            self.create_publisher(PoseStamped, f"robot{i}/pose", 10)
+            for i in range(self.num_robots)
+        ]
+
+        # Calibrate
+        self.declare_parameter("calibration_time", 3)
+        calibration_time = self.get_parameter("calibration_time").value
+        self.get_logger().info(f"Calibrating for {calibration_time} seconds")
+
+        self.calibration_timer = self.create_timer(
+            calibration_time or 3, self.stop_calibrating
         )
-
-        self.multi_robot_estimator = MultiRobotStateEstimator(q=q, r=r)
-
-        # will calibrate for 3 seconds
-        self.create_timer(3.0, self.stop_calibrating)
 
     def stop_calibrating(self):
-        self.calibrating = False
+        """Finish calibrating and assign IDs to robots"""
+
         self.multi_robot_estimator.assign_new_ids()
+        self.calibration_timer.cancel()
+        self.get_logger().info("Calibration complete. Estimating positions of robots")
 
-    def get_request(self):
-        req = CamMeta.Request()
-        req.units = "m"
-        return self.meta_client.call_async(req)
+        return True
 
-    def estimate_poses(self, poses: Float32MultiArray):
-        print("unfiltered data")
-        print(poses.data)
-        data = poses.data
-        if len(data) % 2 != 0:
-            self.get_logger().error("Received odd number of poses (not in pairs)")
-            return
+    def estimate_poses(self, measured_poses: RobotPoints):
+        """Update pose estimates after receiving new measurements"""
+        measured_poses_list = [
+            Measurement(point.x, point.y) for point in measured_poses.points
+        ]
+        actions = {}  # TODO(sebtheiler): get the actions from PID control
 
-        N = len(data) // 2
-        zs = []
-        for i in range(N):
-            raw_x = data[i * 2]
-            raw_y = data[i * 2 + 1]
-            zs.append(
-                np.array([raw_x, raw_y, 0])
-            )  # TODO(sebtheiler): add theta # pylint: disable=fixme
+        cur_time = self.get_clock().now()
+        dt = (cur_time - self.prev_time).nanoseconds / 1000000000
+        self.prev_time = cur_time
 
-        id2u = {}
-        self.multi_robot_estimator.update_estimate(
-            id2u,
-            zs,
-            dt=0.05,  # TODO(sebtheiler): make this dynamic # pylint: disable=fixme
-        )
-
+        self.multi_robot_estimator.update_estimate(actions, measured_poses_list, dt)
         self.publish_filtered_poses()
 
     def publish_filtered_poses(self):
-        data = [Pose()] * self.num_robots
-        print("filtered")
-        for estimator_id, estimator in self.multi_robot_estimator.estimators.items():
-            if estimator.num_estimates_received < 20:
-                continue
+        """Publish the estimated robot positions"""
+        assert self.num_robots == len(self.multi_robot_estimator.estimators)
 
-            real_pos = pixel_to_world(estimator.x, self.cam_meta)
-
-            # quanternion is open
-            pose = create_pose(
-                create_point(real_pos[0], real_pos[1], 0), create_quat(0, 0, 0, 0)
+        for i, estimator in enumerate(self.multi_robot_estimator.estimators):
+            pose = PoseStamped(
+                header=Header(frame_id="odom", stamp=self.get_clock().now().to_msg()),
+                pose=Pose(
+                    position=Point(x=estimator.x.x, y=estimator.x.y),
+                    orientation=Quaternion(
+                        x=0.0, y=0.0, z=0.0, w=0.0
+                    ),  # TODO(eugene): orientation goes here
+                ),
             )
 
-            # TODO(seb): make the estimator ids replace a lost id if its lost, use a queue or smth # pylint: disable=fixme
-            data[estimator_id] = pose
-            # data.append(real_pos[0])
-            # data.append(real_pos[1])
-            # data.append(float(estimator_id))
-            print((estimator_id, estimator.x))
-
-        filtered_poses = PoseArray()
-        filtered_poses.poses = data
-        self.filtered_poses_pub.publish(filtered_poses)
+            self._publishers[i].publish(pose)
 
 
 def main(args=None):
     rclpy.init(args=args)
-
     pos_estimator = PositionEstimator()
-
-    print("Estimating positions of robots")
-
     rclpy.spin(pos_estimator)
-
     pos_estimator.destroy_node()

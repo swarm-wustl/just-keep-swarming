@@ -10,7 +10,7 @@ using Map = vector<vector<int>>;
 
 // Cell containing an XY position
 struct Cell {
-  int x, y;
+  unsigned int x, y;
 
   Cell() : x(0), y(0) {}
   Cell(size_t x, size_t y) : x(x), y(y) {}
@@ -20,7 +20,7 @@ struct Cell {
 
 // Cell with a priority value
 struct PriorityCell {
-  int x, y, priority;
+  unsigned int x, y, priority;
 
   PriorityCell() : x(0), y(0), priority(0) {}
   PriorityCell(int x, int y, int priority) : x(x), y(y), priority(priority) {}
@@ -34,7 +34,7 @@ struct ComparePriorityCell {
 // Vector of cells with a priority value
 struct PriorityVectorCell {
   vector<Cell> cells;
-  int priority;
+  unsigned int priority;
 
   PriorityVectorCell() : priority(0) {}
 };

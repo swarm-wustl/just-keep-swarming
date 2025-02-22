@@ -5,10 +5,10 @@
 #include "control_algorithms/algorithms/common.hpp"
 #include "control_algorithms/algorithms/pplan.hpp"
 #include "control_algorithms/algorithms/sstar.hpp"
-#include "drone_msg/msg/robot_position.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
+#include "shared_types/msg/robot_position.hpp"
 namespace control_algorithms {
 
 Cell pose_to_cell(geometry_msgs::msg::Pose pose,
@@ -84,8 +84,9 @@ MultiRobotPathPlannerActionServer::MultiRobotPathPlannerActionServer(
       "og_map", 10,
       std::bind(&MultiRobotPathPlannerActionServer::update_map, this, _1));
 
-  this->robot_full_pub = this->create_publisher<drone_msg::msg::RobotPosition>(
-      "robot_full_pos", 10);
+  this->robot_full_pub =
+      this->create_publisher<shared_types::msg::RobotPosition>("robot_full_pos",
+                                                               10);
 
   this->robot_poses_sub =
       this->create_subscription<geometry_msgs::msg::PoseArray>(
@@ -129,7 +130,8 @@ void MultiRobotPathPlannerActionServer::update_map(
 void MultiRobotPathPlannerActionServer::robot_feedback(
     const geometry_msgs::msg::Pose current_pose,
     const geometry_msgs::msg::Pose target_pos, const int id) {
-  drone_msg::msg::RobotPosition robot_msg = drone_msg::msg::RobotPosition();
+  shared_types::msg::RobotPosition robot_msg =
+      shared_types::msg::RobotPosition();
 
   std_msgs::msg::Header header = std_msgs::msg::Header();
 
@@ -268,7 +270,7 @@ void MultiRobotPathPlannerActionServer::execute(
         // if the stuff is close enuf, then mark in the set that robot j has
         // reach its target, which will then be skipped above.
         if (std::fabs(cx - tx) <= this->cut_off_dist &&
-          std::fabs(cy - ty) <= this->cut_off_dist) {
+            std::fabs(cy - ty) <= this->cut_off_dist) {
           passed_j.insert(j);
         }
 
