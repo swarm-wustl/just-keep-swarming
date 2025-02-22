@@ -65,7 +65,7 @@ class PositionEstimator(Node):
         actions = {}  # TODO(sebtheiler): get the actions from PID control
 
         cur_time = self.get_clock().now()
-        dt = (cur_time - self.prev_time).nanoseconds / 10000000
+        dt = (cur_time - self.prev_time).nanoseconds / 1000000000
         self.prev_time = cur_time
 
         self.multi_robot_estimator.update_estimate(actions, measured_poses_list, dt)

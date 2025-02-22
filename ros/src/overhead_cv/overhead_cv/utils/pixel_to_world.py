@@ -5,7 +5,6 @@ import numpy as np
 import yaml
 from ament_index_python.packages import get_package_share_directory
 
-# param_file = "cam_meta.yaml"
 param_file = os.path.join(
     get_package_share_directory("overhead_cv"),
     "config",
