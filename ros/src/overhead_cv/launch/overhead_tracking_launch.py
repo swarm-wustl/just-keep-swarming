@@ -1,12 +1,20 @@
 import launch_ros.actions
 
 import launch
+from launch.actions import DeclareLaunchArgument
+from launch.substitutions import LaunchConfiguration
 
 
 def generate_launch_description():
-    N = 2
     return launch.LaunchDescription(
         [
+            # Declare launch arguments
+            DeclareLaunchArgument(
+                "N", default_value="2", description="Number of robots"
+            ),
+            DeclareLaunchArgument(
+                "cam_input", default_value="0", description="Camera input index"
+            ),
             # Camera Feed Node
             launch_ros.actions.Node(
                 package="overhead_cv",
@@ -21,7 +29,7 @@ def generate_launch_description():
                         "fov_y": 103.0,
                         "resolution_x": 1920.0,
                         "resolution_y": 1080.0,
-                        "cam_input": 0,
+                        "cam_input": LaunchConfiguration("cam_input"),
                     }
                 ],
                 output="screen",
@@ -39,7 +47,9 @@ def generate_launch_description():
                 package="overhead_cv",
                 executable="position_estimator",
                 name="position_estimator",
-                parameters=[{"N": N, "q": 1.0, "r": 5.0}],  # Require tuning
+                parameters=[
+                    {"N": LaunchConfiguration("N"), "q": 1.0, "r": 5.0}
+                ],  # Require tuning
                 output="screen",
             ),
             # # Map Maker Node

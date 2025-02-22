@@ -1,8 +1,8 @@
 import rclpy
-from geometry_msgs.msg import Point, Pose, Quaternion
+from geometry_msgs.msg import Point, Pose, PoseStamped, Quaternion
 from rclpy.node import Node
 from shared_types.msg import RobotPoints
-from shared_types.srv import CamMeta
+from std_msgs.msg import Header
 
 from overhead_cv.utils.multi_robot_estimator import MultiRobotStateEstimator
 
@@ -28,10 +28,6 @@ class PositionEstimator(Node):
         r = self.get_parameter("r").value or 0.05
         self.multi_robot_estimator = MultiRobotStateEstimator(self.num_robots, q=q, r=r)
 
-        # CamMeta
-        if not self.get_cam_metadata():
-            raise ValueError("Could not get camera metadata")
-
         # Process data
         self.unfiltered_points_sub = self.create_subscription(
             RobotPoints, "robot_observations", self.estimate_poses, 10
@@ -39,7 +35,7 @@ class PositionEstimator(Node):
 
         # `num_robots` publishers
         self._publishers = [
-            self.create_publisher(Pose, f"robot{i}/pose", 10)
+            self.create_publisher(PoseStamped, f"robot{i}/pose", 10)
             for i in range(self.num_robots)
         ]
 
@@ -51,34 +47,6 @@ class PositionEstimator(Node):
         self.calibration_timer = self.create_timer(
             calibration_time or 3, self.stop_calibrating
         )
-
-    def get_cam_metadata(self):
-        """Gets the camera metadata from the metadata service"""
-        self.meta_client = self.create_client(CamMeta, "cam_meta_data")
-        while not self.meta_client.wait_for_service(timeout_sec=1.0):
-            self.get_logger().info("also waiting for cam node")
-
-        future = self.get_request()
-        rclpy.spin_until_future_complete(self, future)
-        response = future.result()
-
-        if not response:
-            return False
-
-        self.cam_meta = {
-            "focal_length": response.focal_length,
-            "cam_height": response.cam_height,
-            "fov": (response.fov_x, response.fov_y),
-            "resolution": (response.resolution_x, response.resolution_y),
-        }
-
-        return True
-
-    def get_request(self):
-        """Sends a request to the camera metadata service"""
-        req = CamMeta.Request()
-        req.units = "m"  # meters
-        return self.meta_client.call_async(req)
 
     def stop_calibrating(self):
         """Finish calibrating and assign IDs to robots"""
@@ -108,11 +76,14 @@ class PositionEstimator(Node):
         assert self.num_robots == len(self.multi_robot_estimator.estimators)
 
         for i, estimator in enumerate(self.multi_robot_estimator.estimators):
-            pose = Pose(
-                position=Point(x=estimator.x.x, y=estimator.x.y),
-                orientation=Quaternion(
-                    x=0.0, y=0.0, z=0.0, w=0.0
-                ),  # TODO(eugene): orientation goes here
+            pose = PoseStamped(
+                header=Header(frame_id="odom", stamp=self.get_clock().now().to_msg()),
+                pose=Pose(
+                    position=Point(x=estimator.x.x, y=estimator.x.y),
+                    orientation=Quaternion(
+                        x=0.0, y=0.0, z=0.0, w=0.0
+                    ),  # TODO(eugene): orientation goes here
+                ),
             )
 
             self._publishers[i].publish(pose)
