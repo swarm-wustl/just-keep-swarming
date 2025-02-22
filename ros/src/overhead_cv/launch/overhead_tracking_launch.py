@@ -1,4 +1,8 @@
+import os
+
 import launch_ros.actions
+from ament_index_python.packages import get_package_share_directory
+from launch_ros.descriptions.composable_node import IfCondition
 
 import launch
 from launch.actions import DeclareLaunchArgument
@@ -6,6 +10,9 @@ from launch.substitutions import LaunchConfiguration
 
 
 def generate_launch_description():
+    with_rviz2 = LaunchConfiguration("rviz2", default="true")
+    rviz_config = "five_robots.rviz"
+
     return launch.LaunchDescription(
         [
             # Declare launch arguments
@@ -51,6 +58,22 @@ def generate_launch_description():
                     {"N": LaunchConfiguration("N"), "q": 1.0, "r": 5.0}
                 ],  # Require tuning
                 output="screen",
+            ),
+            # rviz2 Node
+            launch_ros.actions.Node(
+                package="rviz2",
+                namespace="",
+                executable="rviz2",
+                condition=IfCondition(with_rviz2),
+                name="rviz2",
+                arguments=[
+                    "-d"
+                    + os.path.join(
+                        get_package_share_directory("overhead_cv"),
+                        "config",
+                        rviz_config,
+                    )
+                ],
             ),
             # # Map Maker Node
             # launch_ros.actions.Node(

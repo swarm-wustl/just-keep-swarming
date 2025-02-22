@@ -1,17 +1,24 @@
+import os
 from typing import Tuple
 
 import numpy as np
 import yaml
+from ament_index_python.packages import get_package_share_directory
 
-param_file = "cam_meta.yaml"
+# param_file = "cam_meta.yaml"
+param_file = os.path.join(
+    get_package_share_directory("overhead_cv"),
+    "config",
+    "cam_meta.yaml",
+)
 with open(param_file) as stream:
-    params = yaml.safe_load(stream)
+    default_params = yaml.safe_load(stream)
 
 
 # focal_length, camera_height, fov, resolution
 # pylint:disable=too-many-locals
 def pixel_to_world(
-    pixel_coords: Tuple[int, int], *, params=params
+    pixel_coords: Tuple[int, int], *, params=default_params
 ) -> Tuple[float, float]:
     camera_height = params["cam_height"]
     fov_x = params["fov_x"]

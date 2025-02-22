@@ -12,6 +12,10 @@ setup(
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
         (
+            os.path.join("share", package_name, "config"),
+            glob(os.path.join("config", "*")),
+        ),
+        (
             os.path.join("share", package_name, "launch"),
             glob(os.path.join("launch", "*launch.[pxy][yma]*")),
         ),
