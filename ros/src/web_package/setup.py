@@ -18,6 +18,6 @@ setup(
     license="TODO: License declaration",
     tests_require=["pytest"],
     entry_points={
-        "console_scripts": ["web_interface = web_package.web_interface:main"],
+        "console_scripts": ["web_interface=web_package.web_interface:main"],
     },
 )
