@@ -1,20 +1,25 @@
 from typing import Tuple
 
 import numpy as np
+import yaml
+
+param_file = "cam_meta.yaml"
+with open(param_file) as stream:
+    params = yaml.safe_load(stream)
 
 
 # focal_length, camera_height, fov, resolution
 # pylint:disable=too-many-locals
-def pixel_to_world(pixel_coords: Tuple[int, int], params):
-
+def pixel_to_world(
+    pixel_coords: Tuple[int, int], *, params=params
+) -> Tuple[float, float]:
     camera_height = params["cam_height"]
-    fov = params["fov"]
-    resolution = params["resolution"]
+    fov_x = params["fov_x"]
+    fov_y = params["fov_y"]
+    image_width = params["resolution_x"]
+    image_height = params["resolution_y"]
 
     x, y = pixel_coords
-
-    fov_x, fov_y = fov
-    image_width, image_height = resolution
 
     fov_h = np.deg2rad(fov_x)
     fov_v = np.deg2rad(fov_y)

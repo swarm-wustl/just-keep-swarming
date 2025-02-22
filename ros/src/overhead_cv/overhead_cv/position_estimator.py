@@ -7,7 +7,6 @@ from shared_types.srv import CamMeta
 from overhead_cv.utils.multi_robot_estimator import MultiRobotStateEstimator
 
 from .utils.filtering_types import Measurement
-from .utils.pixel_to_real import pixel_to_world
 
 
 class PositionEstimator(Node):
@@ -92,9 +91,8 @@ class PositionEstimator(Node):
 
     def estimate_poses(self, measured_poses: RobotPoints):
         """Update pose estimates after receiving new measurements"""
-        measured_poses_world = [
-            Measurement(*pixel_to_world((point.x, point.y), self.cam_meta))
-            for point in measured_poses.points
+        measured_poses_list = [
+            Measurement(point.x, point.y) for point in measured_poses.points
         ]
         actions = {}  # TODO(sebtheiler): get the actions from PID control
 
@@ -102,7 +100,7 @@ class PositionEstimator(Node):
         dt = (cur_time - self.prev_time).nanoseconds / 10000000
         self.prev_time = cur_time
 
-        self.multi_robot_estimator.update_estimate(actions, measured_poses_world, dt)
+        self.multi_robot_estimator.update_estimate(actions, measured_poses_list, dt)
         self.publish_filtered_poses()
 
     def publish_filtered_poses(self):
@@ -111,7 +109,7 @@ class PositionEstimator(Node):
 
         for i, estimator in enumerate(self.multi_robot_estimator.estimators):
             pose = Pose(
-                position=Point(x=estimator.x[0], y=estimator.x[1]),
+                position=Point(x=estimator.x.x, y=estimator.x.y),
                 orientation=Quaternion(
                     x=0.0, y=0.0, z=0.0, w=0.0
                 ),  # TODO(eugene): orientation goes here

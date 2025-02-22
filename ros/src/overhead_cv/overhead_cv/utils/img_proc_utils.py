@@ -1,10 +1,15 @@
 import math
+from typing import Sequence, Tuple
 
 import cv2
 import numpy as np
+from cv2.typing import MatLike
+from numpy.typing import NDArray
 
 
-def detect_and_draw_boxes(frame, lower_color, upper_color):
+def detect_and_draw_boxes(
+    frame: MatLike, lower_color: NDArray, upper_color: NDArray
+) -> Tuple[Sequence[MatLike], MatLike]:
     # Convert frame to HSV color space
     hsv_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
 
@@ -20,7 +25,9 @@ def detect_and_draw_boxes(frame, lower_color, upper_color):
 
 
 # intended to convert points to width and height of sub image
-def calculate_pos(cont_points, conversion, width, height):
+def calculate_pos(
+    cont_points, conversion, width, height
+) -> Tuple[Tuple[int, int], MatLike]:
     x, y, w, h = cv2.boundingRect(cont_points)
     points = np.array([(x, y), (x + w, y), (x + w, y + h), (x, y + h)])
 

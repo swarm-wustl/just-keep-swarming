@@ -1,3 +1,5 @@
+from typing import List, Tuple
+
 import cv2
 import numpy as np
 import rclpy
@@ -7,10 +9,9 @@ from rclpy.node import Node
 from sensor_msgs.msg import Image
 from shared_types.msg import RobotPoints
 
-from .utils.img_proc_utils import calculate_pos, detect_and_draw_boxes
+from overhead_cv.utils.pixel_to_world import pixel_to_world
 
-CAMERA_ID = 0
-DELAY = 1
+from .utils.img_proc_utils import calculate_pos, detect_and_draw_boxes
 
 WINDOW_NAME = "Camera Feed"
 MAP_WINDOW = "Location Tracking"
@@ -34,7 +35,7 @@ class RobotTracker(Node):
         self.create_subscription(
             msg_type=Image,
             topic="/video",
-            callback=self.scan_code_callback,
+            callback=self.image_callback,
             qos_profile=10,
         )
 
@@ -42,13 +43,14 @@ class RobotTracker(Node):
         self.current_contours_points = []  # Current frame's contour data
         self.get_logger().info("Tracking robots")
 
-    def emit_positions(self, points):
+    def publish_pixels_as_positions(self, points: List[Tuple[int, int]]):
         """
-        Publish the detected robot positions
+        Publish the detected robot positions as real world positions
         """
+
         msg = RobotPoints()
         msg.header.stamp = self.get_clock().now().to_msg()
-        msg.points = [Point(x=float(pt[0]), y=float(pt[1]), z=0.0) for pt in points]
+        msg.points = [Point(x=x, y=y, z=0.0) for x, y in map(pixel_to_world, points)]
 
         self.positions_publisher.publish(msg)
 
@@ -57,6 +59,7 @@ class RobotTracker(Node):
         Overlay detected points and contours onto the map and display both
         the original frame and the generated map image
         """
+
         # Historical tracked points
         for point in self.tracked_points:
             cv2.circle(map_image, point, radius=1, color=(0, 0, 255), thickness=2)
@@ -75,7 +78,7 @@ class RobotTracker(Node):
         cv2.imshow(MAP_WINDOW, map_image)
         cv2.waitKey(1)
 
-    def analyze_contours(self, contours, frame_dims, frame):
+    def analyze_contours(self, contours, frame_dims, frame) -> List[Tuple[int, int]]:
         """
         Process detected contours to compute robot positions.
         """
@@ -108,11 +111,11 @@ class RobotTracker(Node):
                 self.tracked_points.append(point)
                 self.current_contours_points.append(scaled_mesh)
 
-            packet_points.append((point[0], point[1]))
+            packet_points.append(point)
 
         return packet_points
 
-    def scan_code_callback(self, data):
+    def image_callback(self, data):
         """
         Callback for incoming image data. Converts the image, detects contours,
         computes positions, and publishes the results
@@ -139,7 +142,7 @@ class RobotTracker(Node):
                 frame_dims=(frame_width, frame_height),
                 frame=frame,
             )
-            self.emit_positions(packet_points)
+            self.publish_pixels_as_positions(packet_points)
 
         if self.display:
             # Create a blank white map image for tracking display

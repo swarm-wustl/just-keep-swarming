@@ -1,6 +1,8 @@
 from math import cos, sin
+from typing import Tuple
 
 import numpy as np
+from numpy.typing import NDArray
 
 H = np.array(
     [
@@ -12,7 +14,15 @@ H = np.array(
 
 
 # pylint: disable=too-many-arguments,too-many-locals
-def kalman_filter(x_prev, u, z, P_prev, dt=1.0, alpha=0.001, beta=0.01):
+def kalman_filter(
+    x_prev: NDArray,
+    u: NDArray,
+    z: NDArray,
+    P_prev: NDArray,
+    dt=1.0,
+    alpha=0.001,
+    beta=0.01,
+) -> Tuple[NDArray, NDArray]:
     F = np.array(
         [
             [1, 0, dt * cos(x_prev[3]), 0, 0],
