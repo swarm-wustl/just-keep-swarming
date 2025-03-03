@@ -1,6 +1,7 @@
 // Copyright 2024 Sebastian Theiler, Jaxon Poentis
 #include "control_algorithms/multi_robot_path_planner_action_server.hpp"
 
+#include "control_algorithms/action/pid.hpp"
 #include "control_algorithms/algorithms/astar.hpp"
 #include "control_algorithms/algorithms/common.hpp"
 #include "control_algorithms/algorithms/pplan.hpp"
@@ -9,6 +10,7 @@
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
 #include "shared_types/msg/robot_position.hpp"
+
 namespace control_algorithms {
 
 Cell pose_to_cell(geometry_msgs::msg::Pose pose,
@@ -224,6 +226,8 @@ void MultiRobotPathPlannerActionServer::execute(
       return;
     }
 
+    /*
+
     feedback->navigation_time = this->now() - start_time;
     feedback->current_poses = {};
     for (Cell &c : plan[i]) {
@@ -241,15 +245,82 @@ void MultiRobotPathPlannerActionServer::execute(
 
     feedback->num_goals_reached = num_goals_reached;
     goal_handle->publish_feedback(feedback);
-
+    */
     // this tracks how much robots made it to each goal for i-th timestep
 
-    std::unordered_set<int> passed_j = {};
+    /*
 
+      Later: possibily create paths to run in parrallel, or just concurrently
+
+    */
+
+    using PIDGoalHandle =
+        rclcpp_action::ClientGoalHandle<control_algorithms::action::PID>;
+
+    std::vector<std::shared_future<PIDGoalHandle::SharedPtr>> future_queue_;
+
+    for (Cell target_goal : plan[i]) {
+      // create goal
+      auto send_goal_options = rclcpp_action::Client<
+          control_algorithms::action::PID>::SendGoalOptions();
+
+      auto goal_msg = control_algorithms::action::PID::Goal();
+
+      auto target_pose = geometry_msgs::msg::Pose();
+
+      double tx = x_cell_to_real(target_goal.x, used_map);
+      double ty = y_cell_to_real(target_goal.y, used_map);
+
+      target_pose.position.x = tx;
+      target_pose.position.y = ty;
+
+      goal_msg.target_pose = target_pose;
+
+      auto client_ptr_ =
+          rclcpp_action::create_client<control_algorithms::action::PID>(this,
+                                                                        "pid");
+
+      // this is of type std::shared_future<PIDGoalHandle::SharedPtr>, auto used
+      // cuz implied lol
+      auto future_goal =
+          client_ptr_->async_send_goal(goal_msg, send_goal_options);
+
+      future_queue_.push_back(future_goal);
+    }
+
+    // GOOD LUCK LOL
+    rclcpp::Rate rate(10);  // 10 Hz loop
+    while (!future_queue_.empty()) {
+      future_queue_.erase(
+          // erease the future from the queue if its ready, meaning its finished
+          // as progress -> ready when done
+          // NOT COMPILING FIX ASAP
+          std::remove_if(
+              future_queue_.begin(), future_queue_.end(),
+              [this](std::shared_future<PIDGoalHandle::SharedPtr> &fut) {
+                return fut.wait_for(std::chrono::seconds(0)) ==
+                       std::future_status::ready;
+              }),
+          future_queue_.end());
+
+      // idk wtf this is doing
+      if (rclcpp::ok()) {
+        rclcpp::spin_some(this->get_node_base_interface());
+      }
+      rate.sleep();
+    }
+
+    /* dog shit code
     while (passed_j.size() < robots.size()) {
       for (int j = 0; j < static_cast<int>(plan[i].size()); ++j) {
         // the robot has already got to its position
         if (passed_j.find(j) != passed_j.end()) continue;
+
+        // TODO: call the CREATE PID_AS here and pass in goal.
+        double tx = x_cell_to_real(c.x, used_map);
+        double ty = y_cell_to_real(c.y, used_map);
+
+        // TODO: call the function with these two values for goal
 
         // LOL
         Cell &c = plan[i][j];
@@ -264,8 +335,7 @@ void MultiRobotPathPlannerActionServer::execute(
         // Is c.x going to be the grid x or real pos x, we can make the real pos
         // be the point in the cnter of the grid would be pretty simple to calc
         // that point
-        double tx = x_cell_to_real(c.x, used_map);
-        double ty = y_cell_to_real(c.y, used_map);
+
 
         // if the stuff is close enuf, then mark in the set that robot j has
         // reach its target, which will then be skipped above.
@@ -285,6 +355,10 @@ void MultiRobotPathPlannerActionServer::execute(
 
       loop_rate.sleep();
     }
+    */
+
+    // success! move forward
+
     ++i;
   }
 
@@ -294,6 +368,17 @@ void MultiRobotPathPlannerActionServer::execute(
     RCLCPP_INFO(this->get_logger(), "Planning succeeded");
   }
 }
+
+// void MultiRobotPathPlannerActionServer::create_new_goal (
+//   unsigned robo_id,
+//   Cell target,
+//   vector<control_algorithms::PIDActionServer> &current_servers ) {
+//     rclcpp::NodeOption options(); //default options
+//     control_algorithms::PIDActionServer PID_controller(options, robo_id);
+
+//     //RCLCPP_COMPONENTS_REGISTER_NODE()
+
+// }
 
 // Fixed this here as I was getting errors with this function being const
 // updating a member variable
