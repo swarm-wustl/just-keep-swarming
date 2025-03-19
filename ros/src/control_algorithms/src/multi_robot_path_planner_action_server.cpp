@@ -298,8 +298,12 @@ void MultiRobotPathPlannerActionServer::execute(
           std::remove_if(
               future_queue_.begin(), future_queue_.end(),
               [this](std::shared_future<PIDGoalHandle::SharedPtr> &fut) {
-                return fut.wait_for(std::chrono::seconds(0)) ==
-                       std::future_status::ready;
+                if (fut.wait_for(std::chrono::seconds(0)) ==
+                    std::future_status::ready) {
+                  RCLCPP_INFO(this->get_logger(),
+                              "a robot reached a goal, removing future");
+                }
+                return false;
               }),
           future_queue_.end());
 
