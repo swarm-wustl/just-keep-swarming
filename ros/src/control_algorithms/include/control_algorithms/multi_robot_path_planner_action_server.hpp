@@ -1,4 +1,4 @@
-// Copyright 2024 Sebastian Theiler
+// Copyright 2024 Sebastian Theiler, Jaxon Poentis
 #pragma once
 
 #include <memory>
@@ -65,6 +65,14 @@ class MultiRobotPathPlannerActionServer : public rclcpp::Node {
   rclcpp::Publisher<shared_types::msg::RobotPosition>::SharedPtr robot_full_pub;
 
   const double cut_off_dist = 0.05;
+
+  /*
+          Need to make a id to pid_AS to start the action server instnace, and
+     then destroy it self
+
+          holy fuck were gonna get a memory leaks
+
+  */
 };
 
 }  // namespace control_algorithms
