@@ -259,6 +259,8 @@ void MultiRobotPathPlannerActionServer::execute(
 
     std::vector<std::shared_future<PIDGoalHandle::SharedPtr>> future_queue_;
 
+    uint16_t robo_id = 0;
+
     for (Cell target_goal : plan[i]) {
       // create goal
       auto send_goal_options = rclcpp_action::Client<
@@ -276,6 +278,8 @@ void MultiRobotPathPlannerActionServer::execute(
 
       goal_msg.target_pose = target_pose;
 
+      goal_msg.robot_id = robo_id;
+
       auto client_ptr_ =
           rclcpp_action::create_client<control_algorithms::action::PID>(this,
                                                                         "pid");
@@ -286,6 +290,7 @@ void MultiRobotPathPlannerActionServer::execute(
           client_ptr_->async_send_goal(goal_msg, send_goal_options);
 
       future_queue_.push_back(future_goal);
+      robo_id++;
     }
 
     // GOOD LUCK LOL
