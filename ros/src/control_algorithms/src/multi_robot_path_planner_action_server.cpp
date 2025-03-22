@@ -90,11 +90,12 @@ MultiRobotPathPlannerActionServer::MultiRobotPathPlannerActionServer(
       this->create_publisher<shared_types::msg::RobotPosition>("robot_full_pos",
                                                                10);
 
-  this->robot_poses_sub =
-      this->create_subscription<geometry_msgs::msg::PoseArray>(
-          "filtered_robot_array_pos", 10,
-          std::bind(&MultiRobotPathPlannerActionServer::update_poses, this,
-                    _1));
+  // deprecated
+  //  this->robot_poses_sub =
+  //      this->create_subscription<geometry_msgs::msg::PoseArray>(
+  //          "filtered_robot_array_pos", 10,
+  //          std::bind(&MultiRobotPathPlannerActionServer::update_poses, this,
+  //                    _1));
 
   RCLCPP_INFO(this->get_logger(),
               "Multi robot path planner action server initialized");
@@ -215,7 +216,7 @@ void MultiRobotPathPlannerActionServer::execute(
     result->error_msg = "Failed to generate a plan";
     goal_handle->abort(result);
   }
-
+  // i here is the current time step in the plan
   size_t i = 0;
   while (i < plan.size()) {
     if (goal_handle->is_canceling()) {
@@ -299,14 +300,15 @@ void MultiRobotPathPlannerActionServer::execute(
       future_queue_.erase(
           // erease the future from the queue if its ready, meaning its finished
           // as progress -> ready when done
-          // NOT COMPILING FIX ASAP
           std::remove_if(
               future_queue_.begin(), future_queue_.end(),
+
               [this](std::shared_future<PIDGoalHandle::SharedPtr> &fut) {
                 if (fut.wait_for(std::chrono::seconds(0)) ==
                     std::future_status::ready) {
                   RCLCPP_INFO(this->get_logger(),
                               "a robot reached a goal, removing future");
+                  return true;
                 }
                 return false;
               }),
