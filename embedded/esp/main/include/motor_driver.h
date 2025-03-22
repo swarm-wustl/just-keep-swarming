@@ -19,6 +19,7 @@ typedef enum {
 typedef struct {
     motor_driver_ret_t (*init)();
     motor_driver_ret_t (*handler)(void *msgin);
+    void *msgin;
 } motor_driver_t;
 
 void push_to_motor_driver_queue(void *msgin);

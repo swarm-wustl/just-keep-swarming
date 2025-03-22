@@ -13,7 +13,6 @@
 
 static QueueHandle_t xQueue = NULL;
 static TickType_t delay = MOTOR_DRIVER_QUEUE_DELAY;
-static void *msgin = NULL;
 
 void push_to_motor_driver_queue(void *msgin) {
     differential_drive_motor_command_t * temp = msgin;
@@ -37,25 +36,21 @@ void motor_driver_task(motor_driver_t *driver) {
         vTaskDelete(NULL); 
     }
 
-
     while (1) { 
-        if (xQueueReceive(xQueue, &msgin, delay) != pdPASS) {
+        if (xQueueReceive(xQueue, &driver->msgin, delay) != pdPASS) {
             continue;
         }
 
         printf("Received data!\n");
-
-        differential_drive_motor_command_t * temp = msgin;
-
-        if (driver->handler(msgin) != MOTOR_DRIVER_SUCCESS) {
+        
+        if (driver->handler(driver->msgin) != MOTOR_DRIVER_SUCCESS) {
             printf("Motor driver handler failed to parse message. Continuing task...\n");
             continue;
         }
     }
 
     // clean up memory (if task ever reaches this point)
-    free(msgin);
-    free(driver);
+    free(driver->msgin);
 
     vTaskDelete(NULL);
 }
