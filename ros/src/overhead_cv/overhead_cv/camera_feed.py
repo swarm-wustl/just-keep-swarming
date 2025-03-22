@@ -91,6 +91,7 @@ class CameraFeed(Node):
 
         update_data = Float32MultiArray()
         update_data.data = self.parameters["shape"]
+        print(update_data.data)
         self.shape_publisher.publish(update_data)
 
     # Gets the camera feed and publishes it to /video topic
