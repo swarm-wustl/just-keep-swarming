@@ -165,6 +165,7 @@ void PIDActionServer::handle_accepted(
 void PIDActionServer::execute(
     const std::shared_ptr<GoalHandlePID> goal_handle) {
   RCLCPP_INFO(this->get_logger(), "Executing goal");
+
   rclcpp::Rate loop_rate(50);  // this is how many iteratiosn per second, so its
                                // HZ, so exec everthing 0.05 seconds
   double angular_time_prev = -1;
@@ -172,16 +173,17 @@ void PIDActionServer::execute(
 
   const auto goal = goal_handle->get_goal();
 
-  this->create_publisher<geometry_msgs::msg::TwistStamped>(
-      "robo_pub_" + goal->robot_id,
+  this->robot_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
+      "robo_pub_" + std::to_string(goal->robot_id),
       10);  // sus shit
 
   rclcpp::Subscription<shared_types::msg::PidPosition>::SharedPtr
       subscriber_pos_ =
           this->create_subscription<shared_types::msg::PidPosition>(
-              "robot_pid_pos_" + goal->robot_id, 10,
+              "robot_filtered_pos_" + std::to_string(goal->robot_id), 10,
               std::bind(&PIDActionServer::position_callback_, this,
                         std::placeholders::_1));
+
   auto feedback = std::make_shared<PID::Feedback>();
   auto result = std::make_shared<PID::Result>();
 
@@ -266,7 +268,8 @@ void PIDActionServer::execute(
       // fix our angle
 
       // maybe spin_some can do spin some to prevent full on blocking
-
+      feedback->current_pose = current_pose;
+      goal_handle->publish_feedback(feedback);
       rclcpp::spin_some(this->get_node_base_interface());
       loop_rate.sleep();
       continue;
@@ -289,7 +292,8 @@ void PIDActionServer::execute(
       this->robot_pub_->publish(robo_msg);
 
       // Return early if still trying to reach target position
-
+      feedback->current_pose = current_pose;
+      goal_handle->publish_feedback(feedback);
       rclcpp::spin_some(this->get_node_base_interface());
 
       loop_rate.sleep();

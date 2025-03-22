@@ -4,3 +4,4 @@ uint16 robot_id
 ---
 int16 error_code
 ---
+geometry_msgs/Pose current_pose
