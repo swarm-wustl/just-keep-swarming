@@ -77,7 +77,7 @@ target_include_directories(
           $<INSTALL_INTERFACE:include>
           ${CMAKE_CURRENT_SOURCE_DIR}/include/control_algorithms/algorithms)
 ament_target_dependencies(pid_action_server "rclcpp" "rclcpp_action"
-                          "rclcpp_components" "nav_msgs")
+                          "rclcpp_components" "nav_msgs" "shared_types")
 rclcpp_components_register_node(
   pid_action_server PLUGIN "control_algorithms::PIDActionServer" EXECUTABLE
   demo_pid_action_server)
