@@ -94,6 +94,7 @@ void command_parser_task(command_parser_t *parser) {
 
     // clean up memory (if task ever reaches this point)
     free(parser->msgin);
+    free(parser->msgout);
     
     vTaskDelete(NULL);
 }
