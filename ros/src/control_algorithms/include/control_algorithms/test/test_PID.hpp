@@ -10,6 +10,7 @@
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
 #include "shared_types/msg/pid_position.hpp"
+#include "shared_types/srv/position_list.hpp"
 namespace control_algorithms {
 class TestPID_AC : public rclcpp::Node {
  public:

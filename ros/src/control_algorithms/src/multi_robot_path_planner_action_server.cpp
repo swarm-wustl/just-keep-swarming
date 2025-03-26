@@ -76,12 +76,30 @@ MultiRobotPathPlannerActionServer::MultiRobotPathPlannerActionServer(
     : Node("multi_robot_path_planner_action_server", options) {
   using std::placeholders::_1, std::placeholders::_2;
 
+  // generating default map
+  this->declare_parameter<int>("width", 300);
+  this->declare_parameter<int>("height", 300);
+  this->declare_parameter<double>("res", 0.5);
+
+  // Get parameters
+  int map_width = this->get_parameter("width").as_int();
+  int map_height = this->get_parameter("height").as_int();
+  double res = this->get_parameter("res").as_double();
+
+  const std::vector<int8_t> map_data(map_height * map_width, 0);
+
+  this->current_map.set__data(map_data);
+  this->current_map.info.set__height(map_height);
+  this->current_map.info.set__width(map_width);
+  this->current_map.info.set__resolution(res);
+
   this->action_server_ = rclcpp_action::create_server<MultiRobotPathPlan>(
       this, "multi_robot_path_planner",
       std::bind(&MultiRobotPathPlannerActionServer::handle_goal, this, _1, _2),
       std::bind(&MultiRobotPathPlannerActionServer::handle_cancel, this, _1),
       std::bind(&MultiRobotPathPlannerActionServer::handle_accepted, this, _1));
 
+  // may need a service call to get an initial map
   this->og_map_sub = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
       "og_map", 10,
       std::bind(&MultiRobotPathPlannerActionServer::update_map, this, _1));
@@ -90,12 +108,11 @@ MultiRobotPathPlannerActionServer::MultiRobotPathPlannerActionServer(
       this->create_publisher<shared_types::msg::RobotPosition>("robot_full_pos",
                                                                10);
 
-  // deprecated
-  //  this->robot_poses_sub =
-  //      this->create_subscription<geometry_msgs::msg::PoseArray>(
-  //          "filtered_robot_array_pos", 10,
-  //          std::bind(&MultiRobotPathPlannerActionServer::update_poses, this,
-  //                    _1));
+  this->robot_poses_sub =
+      this->create_subscription<geometry_msgs::msg::PoseArray>(
+          "filtered_robot_array_pos", 10,
+          std::bind(&MultiRobotPathPlannerActionServer::update_poses, this,
+                    _1));
 
   RCLCPP_INFO(this->get_logger(),
               "Multi robot path planner action server initialized");
@@ -165,10 +182,51 @@ void MultiRobotPathPlannerActionServer::execute(
   // the positions
   vector<Cell> robots = {};
 
+  // should I have the robots positions always being updated like this?
+  // what if we just make a service call, that just gets the position ONLY for
+  // path planning
+
+  // fuck it im making a service call
+
+  // std::shared_ptr<rclcpp::Node> node =
+  // rclcpp::Node::make_shared("add_two_ints_client");
+  rclcpp::Client<shared_types::srv::PositionList>::SharedPtr client =
+      this->create_client<shared_types::srv::PositionList>("position_list");
+
+  auto robo_pos_request =
+      std::make_shared<shared_types::srv::PositionList::Request>();
+
+  while (!client->wait_for_service(std::chrono::seconds(1))) {
+    if (!rclcpp::ok()) {
+      RCLCPP_ERROR(this->get_logger(),
+                   "Interrupted while waiting for the service. Exiting.");
+      result->error_code = FAILED_TO_PLAN;
+      result->error_msg = "FAILED";
+      goal_handle->canceled(result);
+      RCLCPP_INFO(this->get_logger(), "Planning failed to get robot pos");
+      return;
+    }
+    RCLCPP_INFO(this->get_logger(), "service not available, waiting again...");
+  }
+
+  auto robot_pos_result = client->async_send_request(robo_pos_request);
+
+  if (rclcpp::spin_until_future_complete(this->get_node_base_interface(),
+                                         robot_pos_result) !=
+      rclcpp::FutureReturnCode::SUCCESS) {
+    RCLCPP_INFO(this->get_logger(),
+                "Failed service request to get robot positions");
+    result->error_code = FAILED_TO_PLAN;
+    result->error_msg = "FAILED";
+    goal_handle->canceled(result);
+    return;
+  }
+
+  this->robot_poses.set__poses(robot_pos_result.get()->poses.poses);
+
   for (const geometry_msgs::msg::Pose robot_pose : this->robot_poses.poses) {
     robots.push_back(pose_to_cell(robot_pose, used_map));
   }
-
   // Fake starting positions in place of state estimation
   // vector<Cell> robots = {
   //     {0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5},
@@ -320,53 +378,6 @@ void MultiRobotPathPlannerActionServer::execute(
       }
       rate.sleep();
     }
-
-    /* dog shit code
-    while (passed_j.size() < robots.size()) {
-      for (int j = 0; j < static_cast<int>(plan[i].size()); ++j) {
-        // the robot has already got to its position
-        if (passed_j.find(j) != passed_j.end()) continue;
-
-        // TODO: call the CREATE PID_AS here and pass in goal.
-        double tx = x_cell_to_real(c.x, used_map);
-        double ty = y_cell_to_real(c.y, used_map);
-
-        // TODO: call the function with these two values for goal
-
-        // LOL
-        Cell &c = plan[i][j];
-
-        // // Current
-        double cx = robot_poses.poses[j].position.x;
-        double cy = robot_poses.poses[j].position.y;
-
-        // (Jaxon)
-        // im having this just return the pixel coord so it compiles LOL
-        // we're going to need to implement the python code for this.
-        // Is c.x going to be the grid x or real pos x, we can make the real pos
-        // be the point in the cnter of the grid would be pretty simple to calc
-        // that point
-
-
-        // if the stuff is close enuf, then mark in the set that robot j has
-        // reach its target, which will then be skipped above.
-        if (std::fabs(cx - tx) <= this->cut_off_dist &&
-            std::fabs(cy - ty) <= this->cut_off_dist) {
-          passed_j.insert(j);
-        }
-
-        // this is a little questionable, we're publishing the points even tho
-        // there could be no update, we should pontially move this into
-        // update_poses, and then keep track of the current timestamp with a
-        // member variable this should work for now tho
-        geometry_msgs::msg::Pose pose = create_pose(tx, ty);
-
-        this->robot_feedback(pose, robot_poses.poses[j], j);
-      }
-
-      loop_rate.sleep();
-    }
-    */
 
     // success! move forward
 

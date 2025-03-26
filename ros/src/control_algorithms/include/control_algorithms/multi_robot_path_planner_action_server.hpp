@@ -11,6 +11,7 @@
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "shared_types/msg/robot_position.hpp"
+#include "shared_types/srv/position_list.hpp"
 
 namespace control_algorithms {
 
