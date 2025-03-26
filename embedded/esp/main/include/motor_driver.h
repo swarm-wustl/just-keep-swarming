@@ -23,4 +23,4 @@ typedef struct {
 } motor_driver_t;
 
 void push_to_motor_driver_queue(void *msgin);
-void motor_driver_task(motor_driver_t *driver);
+void motor_driver_task(void *driver);

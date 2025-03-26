@@ -16,6 +16,9 @@
 #include <rmw_microros/rmw_microros.h>
 #endif
 
+#include "driver/uart.h"
+#include "driver/gpio.h"
+
 #include "differential_drive.h"
 #include "util.h"
 
@@ -29,13 +32,14 @@
 #define LEFT_MOTOR_CHANNEL LEDC_CHANNEL_0
 #define RIGHT_MOTOR_CHANNEL LEDC_CHANNEL_1
 
-#define ENA GPIO_NUM_27
-#define IN1 GPIO_NUM_14
-#define IN2 GPIO_NUM_32
-#define ENB GPIO_NUM_26
-#define IN3 GPIO_NUM_25
-#define IN4 GPIO_NUM_33
-#define GPIO_BITMASK (1ULL << ENA) | (1ULL << IN1) | (1ULL << IN2) | (1ULL << ENB) | (1ULL << IN3) | (1ULL << IN4)
+#define ENA GPIO_NUM_2
+#define IN1 GPIO_NUM_5
+#define IN2 GPIO_NUM_16  // 3
+#define ENB GPIO_NUM_15
+#define IN3 GPIO_NUM_17  // 1
+#define IN4 GPIO_NUM_4
+#define STBY GPIO_NUM_23
+#define GPIO_BITMASK ((1ULL << ENA) | (1ULL << IN1) | (1ULL << IN2) | (1ULL << ENB) | (1ULL << IN3) | (1ULL << IN4) | (1ULL << STBY))
 
 #define FLOAT_TOLERANCE 0.01
 
@@ -125,6 +129,9 @@ motor_driver_ret_t esp32_l293d_differential_drive_init() {
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
     gpio_config(&io_conf);
 
+    // Set standby pin to HIGH
+    gpio_set_level(STBY, HIGH);
+
     setup_pwm();
 
     return MOTOR_DRIVER_SUCCESS;
@@ -135,7 +142,7 @@ motor_driver_ret_t esp32_l293d_differential_drive_handler(differential_drive_mot
         return MOTOR_DRIVER_ERROR_GENERIC;
     }
 
-    printf("hola: %d %d %f %f\n", msgin->left_dir, msgin->right_dir, msgin->left_pwm_ratio, msgin->right_pwm_ratio);
+    printf("running motors: %d %d %f %f\n", msgin->left_dir, msgin->right_dir, msgin->left_pwm_ratio, msgin->right_pwm_ratio);
 
     // Control motors based on table:
     // https://lastminuteengineers.com/l293d-dc-motor-arduino-tutorial/

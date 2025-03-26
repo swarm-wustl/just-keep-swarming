@@ -31,11 +31,9 @@ static void callback(const void *msgin, void *msgout) {
     command_parser_ret_t res = handler(msgin, msgout);
 
     if (res != COMMAND_PARSER_SUCCESS) {
-        // TODO: error handler
+        printf("Unable to parse message\n");
         return;
     }
-
-    printf("parsed msg!\n");
 
     push_to_motor_driver_queue(msgout);
 }
@@ -86,8 +84,6 @@ void command_parser_task(command_parser_t *parser) {
         parser->msgout,
         ON_NEW_DATA
     ));
-
-    printf("hi: %s\n", parser->topic_name);
 
     // run the executor forever (continuously receive messages)
     rclc_executor_spin(&executor);
