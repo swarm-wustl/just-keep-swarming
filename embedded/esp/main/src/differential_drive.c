@@ -129,9 +129,6 @@ motor_driver_ret_t esp32_l293d_differential_drive_init() {
     io_conf.pull_up_en = GPIO_PULLUP_DISABLE;
     gpio_config(&io_conf);
 
-    // Set standby pin to HIGH
-    gpio_set_level(STBY, HIGH);
-
     setup_pwm();
 
     return MOTOR_DRIVER_SUCCESS;
@@ -170,6 +167,9 @@ motor_driver_ret_t esp32_l293d_differential_drive_handler(differential_drive_mot
         gpio_set_level(IN3, LOW);
         gpio_set_level(IN4, HIGH);
     }
+
+    // Set standby pin to HIGH
+    gpio_set_level(STBY, HIGH);
 
     // Update left motor PWM
     double left_duty_cycle = compute_duty_cycle(msgin->left_pwm_ratio);

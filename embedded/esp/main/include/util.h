@@ -9,6 +9,6 @@
 }
 
 enum digital_logic {
-    HIGH,
-    LOW
+    HIGH = 1,
+    LOW = 0
 };

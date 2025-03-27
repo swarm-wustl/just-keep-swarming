@@ -44,3 +44,5 @@ void app_main(void)
     xTaskCreate((TaskFunction_t)command_parser_task, "command_parser_task", 4*1024, &parser, 1, NULL);
     xTaskCreate((TaskFunction_t)motor_driver_task, "motor_driver_task", 4*1024, &motor_driver, 1, NULL);
 }
+
+// ros2 topic pub /diffdrive_twist geometry_msgs/msg/Twist '{linear: {x: 0.5, y: 0.0, z: 0.0}, angular: {x: 0.0, y: 0.0, z: 1.0}}'
