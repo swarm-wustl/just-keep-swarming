@@ -7,11 +7,10 @@ from cv_bridge import CvBridge, CvBridgeError
 from geometry_msgs.msg import Point
 from rclpy.node import Node
 from sensor_msgs.msg import Image
-from shared_types.msg import RobotPoints
 
 from overhead_cv.utils.pixel_to_world import pixel_to_world
 from overhead_cv.utils.angle_calculation import calculate_angle
-from geometry_msgs.msg import Pose, Point, Quaternion
+from geometry_msgs.msg import Pose, PoseArray, Point, Quaternion
 import math
 
 from .utils.img_proc_utils import calculate_pos, detect_and_draw_boxes
@@ -32,7 +31,7 @@ class RobotTracker(Node):
         self.display = self.get_parameter("display").value is True
 
         self.positions_publisher = self.create_publisher(
-            RobotPoints, "robot_observations", 10
+            PoseArray, "robot_observations", 10
         )
 
         self.create_subscription(
@@ -46,15 +45,18 @@ class RobotTracker(Node):
         self.current_contours_points = []  # Current frame's contour data
         self.get_logger().info("Tracking robots")
 
-    def create_pose(x, y, theta):
+    def create_pose(self, x, y, theta):
         q = Quaternion()
-        q.w = math.cos(theta / 2)
-        q.x = 0
-        q.y = 0
-        q.z = math.sin(theta / 2)
+
+        if(theta!='nan'):
+            theta=math.radians(theta)
+            q.w = math.cos(theta / 2)
+            q.x = 0.0
+            q.y = 0.0
+            q.z = math.sin(theta / 2)
         
         pose = Pose()
-        pose.position = Point(x, y, 0)  # Z is usually 0 for 2D poses
+        pose.position = Point(x=x, y=y, z=0.0)  # Z is usually 0 for 2D poses
         pose.orientation = q
         
         return pose
@@ -64,12 +66,14 @@ class RobotTracker(Node):
         Publish the detected robot positions as real world positions
         """
 
-        msg = RobotPoints()
+        msg = PoseArray()
         msg.header.stamp = self.get_clock().now().to_msg()
-        print(points)
-        print()
-        msg.points=[self.create_pose(Point(x=xx, y=yy, z=z) for (xx, yy), (_, _, z) in zip(map(pixel_to_world, [(x, y) for x, y, _ in points]), points))]
-
+        msg.header.frame_id = "map"
+        points = [
+            (xx, yy, 0.0 if z == 'nan' else z) 
+            for (xx, yy), (_, _, z) in zip(map(pixel_to_world, [(x, y) for x, y, _ in points]), points)
+        ]
+        msg.poses = [self.create_pose(*point) for point in points]
         self.positions_publisher.publish(msg)
 
     def display_images(self, map_image, frame):
@@ -148,9 +152,9 @@ class RobotTracker(Node):
         # Get frame dimensions (width, height)
         frame_height, frame_width = frame.shape[:2]
 
-        # Define HSV color bounds for detection (adjust as necessary) orange
-        lower_color = np.array([0, 0.20*255, 0.70*255])
-        upper_color = np.array([360, 0.70*255, 0.95*255])
+        # Define HSV orange color bounds for detection (adjust as necessary) 
+        lower_color = np.array([0, 0.20*255, 0.55*255])
+        upper_color = np.array([30, 0.70*255, 1*255])
 
         # Detect contours corresponding to the robot markers and obtain the mask
         detected_contours, mask = detect_and_draw_boxes(frame, lower_color, upper_color)
@@ -190,7 +194,7 @@ class RobotTracker(Node):
                     frame_angle[y_start:y_end, x_start:x_end] = frame[y_start:y_end, x_start:x_end]
                     
                     # Define HSV color bounds for detection (adjust as necessary)
-                    angle_lower_color = np.array([190/2,0.45*255,0.45*255])
+                    angle_lower_color = np.array([180/2,0.2*255,0.45*255])
                     angle_upper_color = np.array([230/2,0.90*255,0.90*255])
 
                     angle_points, angle_mask = detect_and_draw_boxes(frame_angle, angle_lower_color, angle_upper_color)
