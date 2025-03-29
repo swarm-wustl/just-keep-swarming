@@ -1,6 +1,7 @@
 // Copyright 2025 Preston Meek, Jaxon Poentis
 #include "control_algorithms/pid_action_server.hpp"
 
+#include "rclcpp_components/register_node_macro.hpp"
 // TODO(preston): test Kd
 // TODO(preston): add Ki
 // TODO(preston): add reset functionality when going to a very new point
@@ -172,23 +173,40 @@ void PIDActionServer::execute(
   double linear_time_prev = -1;
 
   const auto goal = goal_handle->get_goal();
+  std::stringstream robo_pub_name;
+  std::stringstream robo_sub_name;
+
+  robo_pub_name << "/model/robot_" << std::to_string(goal->robot_id)
+                << "/cmd_vel";
+  robo_sub_name << "/model/robot_" << std::to_string(goal->robot_id) << "/pose";
+
+  RCLCPP_INFO(this->get_logger(), robo_pub_name.str().c_str());
+  RCLCPP_INFO(this->get_logger(), robo_sub_name.str().c_str());
 
   this->robot_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
-      "robo_pub_" + std::to_string(goal->robot_id),
+      robo_pub_name.str(),
       10);  // sus shit
 
-  rclcpp::Subscription<shared_types::msg::PidPosition>::SharedPtr
-      subscriber_pos_ =
-          this->create_subscription<shared_types::msg::PidPosition>(
-              "robot_filtered_pos_" + std::to_string(goal->robot_id), 10,
-              std::bind(&PIDActionServer::position_callback_, this,
-                        std::placeholders::_1));
+  geometry_msgs::msg::Pose current_pose;
+  bool _ready = false;
+  rclcpp::Subscription<geometry_msgs::msg::Pose>::SharedPtr subscriber_pos_ =
+      this->create_subscription<geometry_msgs::msg::Pose>(
+          robo_sub_name.str(), 10,
+          [this, &current_pose,
+           &_ready](const geometry_msgs::msg::Pose::SharedPtr msg) {
+            current_pose = *msg.get();
+            if (!_ready) {
+              _ready = true;
+              RCLCPP_INFO(this->get_logger(), "PID is ready, starting!!");
+            }
+          });
 
   auto feedback = std::make_shared<PID::Feedback>();
   auto result = std::make_shared<PID::Result>();
 
-  geometry_msgs::msg::Pose current_pose;  // TODO(preston): Need to get the
-                                          // actual position from camera feed
+  RCLCPP_INFO(this->get_logger(), "subscribed");
+  // geometry_msgs::msg::Pose current_pose;  // TODO(preston): Need to get the
+  //  actual position from camera feed
 
   const geometry_msgs::msg::Pose &target_pose = goal->target_pose;
 
@@ -208,6 +226,8 @@ void PIDActionServer::execute(
   // make better log messages
   builtin_interfaces::msg::Time start_time = this->now();
   // need to get the current pose
+  int debug_state = 0;
+  RCLCPP_INFO(this->get_logger(), "PID waiting for pos ");
   while (!reached_goal && rclcpp::ok()) {
     if (goal_handle->is_canceling()) {
       result->error_code = result_code::CANCELED;
@@ -232,8 +252,12 @@ void PIDActionServer::execute(
 
     // since we're using spin some, we most likely do not need to use the mutex
     // lock this->position_mutex_.lock();
-    current_pose = this->robot_map_[goal->robot_id];
     // this->position_mutex_.unlock();
+
+    if (!_ready) {
+      loop_rate.sleep();
+      continue;
+    }
 
     current_x = current_pose.position.x;
     current_y = current_pose.position.y;
@@ -270,7 +294,11 @@ void PIDActionServer::execute(
       // maybe spin_some can do spin some to prevent full on blocking
       feedback->current_pose = current_pose;
       goal_handle->publish_feedback(feedback);
-      rclcpp::spin_some(this->get_node_base_interface());
+      // rclcpp::spin_some(this->get_node_base_interface());
+      if (debug_state != 1) {
+        RCLCPP_INFO(this->get_logger(), "spinning");
+        debug_state = 1;
+      }
       loop_rate.sleep();
       continue;
     }
@@ -294,8 +322,11 @@ void PIDActionServer::execute(
       // Return early if still trying to reach target position
       feedback->current_pose = current_pose;
       goal_handle->publish_feedback(feedback);
-      rclcpp::spin_some(this->get_node_base_interface());
-
+      // rclcpp::spin_some(this->get_node_base_interface());
+      if (debug_state != 2) {
+        RCLCPP_INFO(this->get_logger(), "moving");
+        debug_state = 1;
+      }
       loop_rate.sleep();
       continue;
     }
@@ -330,3 +361,5 @@ void PIDActionServer::position_callback_(
 }
 
 }  // namespace control_algorithms
+
+RCLCPP_COMPONENTS_REGISTER_NODE(control_algorithms::PIDActionServer);

@@ -7,7 +7,7 @@ The Simulation package launches the Gazebo simulator.
 To launch the Gazebo simulator, run:
 
 ```
-ros2 launch simulation simulation_launch.py n_robots:=22 robot_offset:=1.0 robot_arrangement:=CIRCLE
+ros2 launch simulation simulation_launch.py n_robots:=1 robot_offset:=1.0 robot_arrangement:=CIRCLE
 ```
 
 | **Parameter**     | **Required** | **Description**                                           | **Type**                 | **Default** |

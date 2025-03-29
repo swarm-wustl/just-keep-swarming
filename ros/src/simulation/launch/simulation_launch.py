@@ -73,7 +73,6 @@ def generate_launch_description():
         )
 
     def generate_topic_bridges(context, configs):
-        print("Should be loading some fucking control")
         n_robots_value = int(context.perform_substitution(configs["n_robots"]))
         return [
             ExecuteProcess(
@@ -82,7 +81,8 @@ def generate_launch_description():
                     "run",
                     "ros_gz_bridge",
                     "parameter_bridge",
-                    f"/model/robot_{n}/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist",
+                    f"/model/robot_{n}/cmd_vel@geometry_msgs/msg/TwistStamped]ignition.msgs.Twist",
+                    f"/model/robot_{n}/pose@geometry_msgs/msg/Pose@ignition.msgs.Pose",
                 ]
             )
             for n in range(n_robots_value)

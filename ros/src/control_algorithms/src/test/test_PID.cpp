@@ -1,6 +1,12 @@
 // Copyright 2024 Alston Liu, Jaxon Poentis
 #include "control_algorithms/test/test_PID.hpp"
 
+std::vector<double> proximity_to_goal(geometry_msgs::msg::Pose cur,
+                                      geometry_msgs::msg::Pose tar) {
+  return {cur.position.x - tar.position.x, cur.position.y - tar.position.y,
+          cur.position.z - tar.position.z};
+}
+
 namespace control_algorithms {
 TestPID_AC::TestPID_AC(const rclcpp::NodeOptions &options)
     : Node("PID_AS_TESTER", options) {
@@ -15,6 +21,8 @@ TestPID_AC::TestPID_AC(const rclcpp::NodeOptions &options)
   test_robot_0.position.set__y(0.0);
   test_robot_0.position.set__z(0.0);
 
+  this->test_robots[0] = test_robot_0;
+
   geometry_msgs::msg::Pose test_robot_target_0;
 
   test_robot_target_0.position.set__x(5.0);
@@ -23,20 +31,17 @@ TestPID_AC::TestPID_AC(const rclcpp::NodeOptions &options)
 
   this->test_robots_targets[0] = test_robot_target_0;
 
-  rclcpp::Publisher<shared_types::msg::PidPosition>::SharedPtr pub_0 =
-      this->create_publisher<shared_types::msg::PidPosition>("robo_pub_0", 10);
+  rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr pub_0 =
+      this->create_publisher<geometry_msgs::msg::Pose>("robo_pub_0", 10);
 
   this->create_subscription<geometry_msgs::msg::TwistStamped>(
-      "robot_filtered_pos_0", 10,
+      "/model/robot_0/pose", 10,
       [this](const geometry_msgs::msg::TwistStamped::SharedPtr msg) {
         auto rob_pose = this->test_robots_targets[0].position;
 
-        this->test_robots_targets[0].position.set__x(rob_pose.x +
-                                                     msg->twist.linear.x);
-        this->test_robots_targets[0].position.set__y(rob_pose.y +
-                                                     msg->twist.linear.y);
-        this->test_robots_targets[0].position.set__z(rob_pose.z +
-                                                     msg->twist.linear.z);
+        this->test_robots[0].position.set__x(rob_pose.x + msg->twist.linear.x);
+        this->test_robots[0].position.set__y(rob_pose.y + msg->twist.linear.y);
+        this->test_robots[0].position.set__z(rob_pose.z + msg->twist.linear.z);
       });
   auto goal_msg = control_algorithms::action::PID::Goal();
 
@@ -62,6 +67,8 @@ TestPID_AC::TestPID_AC(const rclcpp::NodeOptions &options)
   // this is of type std::shared_future<PIDGoalHandle::SharedPtr>, auto used
   // cuz implied lol
   auto future_goal = client_ptr_->async_send_goal(goal_msg, send_goal_options);
+
+  // must verify ans
 }
 
 // ned to do make a feedback tester
@@ -76,6 +83,17 @@ void TestPID_AC::goal_response_callback(
 }
 
 void TestPID_AC::result_callback(const GoalHandlePID::WrappedResult &result) {
+  RCLCPP_INFO(this->get_logger(), "Goal finsished, printing results:");
+
+  std::vector<double> prox =
+      proximity_to_goal(this->test_robots[0], this->test_robots_targets[0]);
+
+  std::stringstream ans;
+
+  ans << "prox: x: " << prox[0] << "y: " << prox[1] << "z: " << prox[2];
+
+  RCLCPP_INFO(this->get_logger(), ans.str().c_str());
+
   switch (result.code) {
     case rclcpp_action::ResultCode::SUCCEEDED:
       break;
