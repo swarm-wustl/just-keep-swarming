@@ -32,14 +32,33 @@
 #define LEFT_MOTOR_CHANNEL LEDC_CHANNEL_0
 #define RIGHT_MOTOR_CHANNEL LEDC_CHANNEL_1
 
+#define INNER_LEFT_MOTOR_CHANNEL LEDC_CHANNEL_3
+#define INNER_RIGHT_MOTOR_CHANNEL LEDC_CHANNEL_3
+
 #define ENA GPIO_NUM_19
 #define IN1 GPIO_NUM_22
 #define IN2 GPIO_NUM_3 // 3
 #define ENB GPIO_NUM_18
 #define IN3 GPIO_NUM_1  // 1
 #define IN4 GPIO_NUM_21
+
+// TODO
+#define ENC GPIO_NUM_2
+#define IN5 GPIO_NUM_5
+#define IN6 GPIO_NUM_16
+#define END GPIO_NUM_15
+#define IN7 GPIO_NUM_17
+#define IN8 GPIO_NUM_4
+
 #define STBY GPIO_NUM_23
-#define GPIO_BITMASK ((1ULL << ENA) | (1ULL << IN1) | (1ULL << IN2) | (1ULL << ENB) | (1ULL << IN3) | (1ULL << IN4) | (1ULL << STBY))
+
+#define GPIO_BITMASK ( \
+    (1ULL << ENA) | (1ULL << IN1) | (1ULL << IN2) | \
+    (1ULL << ENB) | (1ULL << IN3) | (1ULL << IN4) | \
+    (1ULL << ENC) | (1ULL << IN5) | (1ULL << IN6) | \
+    (1ULL << END) | (1ULL << IN7) | (1ULL << IN8) | \
+    (1ULL << STBY) \
+)
 
 #define FLOAT_TOLERANCE 0.01
 
@@ -48,7 +67,7 @@ command_parser_ret_t twist_to_differential_drive(const geometry_msgs__msg__Twist
         return COMMAND_PARSER_ERROR_GENERIC;
     }
 
-    // Extract linear and angular velocities
+    // Extract linear and angular (yaw) velocities
     double linear_velocity = msgin->linear.x;
     double angular_velocity = msgin->angular.z;
 
@@ -78,6 +97,37 @@ command_parser_ret_t twist_to_differential_drive(const geometry_msgs__msg__Twist
 
     msgout->left_pwm_ratio = fabs(left_velocity);
     msgout->right_pwm_ratio = fabs(right_velocity);
+
+    // Extract roll and pitch for inner motors
+    double roll = msgin->angular.x;
+    double pitch = msgin->angular.y;
+
+    // Compute wheel velocities
+    left_velocity = roll + (pitch * WHEELBASE / 2);
+    right_velocity = roll - (pitch * WHEELBASE / 2);
+
+    // Find the maximum velocity for normalization
+    max_velocity = fmax(fabs(left_velocity), fabs(right_velocity));
+    if (max_velocity > 1.0) {
+        left_velocity /= max_velocity;
+        right_velocity /= max_velocity;
+    }
+    
+    // Determine motor directions and set PWM ratios
+    if (fabs(left_velocity) <= FLOAT_TOLERANCE) {
+        msgout->inner_left_dir = MOTOR_STOP;
+    } else {
+        msgout->inner_left_dir = (left_velocity >= 0) ? MOTOR_FORWARD : MOTOR_BACKWARD;
+    }
+    
+    if (fabs(right_velocity) <= FLOAT_TOLERANCE) {
+        msgout->inner_right_dir = MOTOR_STOP;
+    } else {
+        msgout->inner_right_dir = (right_velocity >= 0) ? MOTOR_FORWARD : MOTOR_BACKWARD;
+    }
+
+    msgout->inner_left_pwm_ratio = fabs(left_velocity);
+    msgout->inner_right_pwm_ratio = fabs(right_velocity);
 
     return COMMAND_PARSER_SUCCESS;
 }
@@ -113,6 +163,28 @@ static void setup_pwm() {
         .hpoint         = 0                     // Default hpoint value
     };
     ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel_right_motor));
+
+    ledc_channel_config_t ledc_channel_inner_left_motor = {
+        .speed_mode     = LEDC_LOW_SPEED_MODE,          // LEDC low-speed mode
+        .channel        = INNER_LEFT_MOTOR_CHANNEL,     // Set motor channel
+        .timer_sel      = LEDC_TIMER_0,                 // Use timer 0
+        .intr_type      = LEDC_INTR_DISABLE,            // Disable interrupts
+        .gpio_num       = ENC,                          // Assign GPIO pin
+        .duty           = 0,                            // Initial duty cycle (0%)
+        .hpoint         = 0                             // Default hpoint value
+    };
+    ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel_inner_left_motor));
+
+    ledc_channel_config_t ledc_channel_inner_right_motor = {
+        .speed_mode     = LEDC_LOW_SPEED_MODE,          // LEDC low-speed mode
+        .channel        = INNER_RIGHT_MOTOR_CHANNEL,    // Set motor channel
+        .timer_sel      = LEDC_TIMER_0,                 // Use timer 0
+        .intr_type      = LEDC_INTR_DISABLE,            // Disable interrupts
+        .gpio_num       = END,                          // Assign GPIO pin
+        .duty           = 0,                            // Initial duty cycle (0%)
+        .hpoint         = 0                             // Default hpoint value
+    };
+    ESP_ERROR_CHECK(ledc_channel_config(&ledc_channel_inner_right_motor));
 }
 
 static double compute_duty_cycle(float pwm_ratio) {
@@ -170,6 +242,32 @@ motor_driver_ret_t esp32_l293d_differential_drive_handler(differential_drive_mot
         gpio_set_level(IN4, LOW);
     }
 
+    // Control inner left motor
+    if (msgin->inner_left_dir == MOTOR_STOP) {
+        gpio_set_level(IN5, LOW);
+        gpio_set_level(IN6, LOW);
+    } else if (msgin->inner_left_dir == MOTOR_FORWARD) {
+        gpio_set_level(IN5, HIGH);
+        gpio_set_level(IN6, LOW);
+    } else if (msgin->inner_left_dir == MOTOR_BACKWARD) {
+        gpio_set_level(IN5, LOW);
+        gpio_set_level(IN6, HIGH);
+    }
+
+    // Control inner right motor
+    // Manually flip this motor because it goes the opposite direction
+    // maybe a hardware issue? idk
+    if (msgin->inner_right_dir == MOTOR_STOP) {
+        gpio_set_level(IN7, LOW);
+        gpio_set_level(IN8, LOW);
+    } else if (msgin->inner_right_dir == MOTOR_FORWARD) {
+        gpio_set_level(IN7, LOW);
+        gpio_set_level(IN8, HIGH);
+    } else if (msgin->inner_right_dir == MOTOR_BACKWARD) {
+        gpio_set_level(IN7, HIGH);
+        gpio_set_level(IN8, LOW);
+    }
+
     // Set standby pin to HIGH
     gpio_set_level(STBY, HIGH);
 
@@ -182,6 +280,16 @@ motor_driver_ret_t esp32_l293d_differential_drive_handler(differential_drive_mot
     double right_duty_cycle = compute_duty_cycle(msgin->right_pwm_ratio);
     ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, RIGHT_MOTOR_CHANNEL, right_duty_cycle));
     ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, RIGHT_MOTOR_CHANNEL));
+
+    // Update inner left motor PWM
+    double inner_left_duty_cycle = compute_duty_cycle(msgin->inner_left_pwm_ratio);
+    ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, INNER_LEFT_MOTOR_CHANNEL, inner_left_duty_cycle));
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, INNER_LEFT_MOTOR_CHANNEL));
+
+    // Update inner right motor PWM
+    double inner_right_duty_cycle = compute_duty_cycle(msgin->inner_right_pwm_ratio);
+    ESP_ERROR_CHECK(ledc_set_duty(LEDC_LOW_SPEED_MODE, INNER_RIGHT_MOTOR_CHANNEL, inner_right_duty_cycle));
+    ESP_ERROR_CHECK(ledc_update_duty(LEDC_LOW_SPEED_MODE, INNER_RIGHT_MOTOR_CHANNEL));
 
     printf("ran motors successfully!\n");
 

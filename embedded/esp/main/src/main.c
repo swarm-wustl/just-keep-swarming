@@ -29,7 +29,7 @@ void app_main(void)
 #endif
 
     parser.node_name = "diffdrive_node";
-    parser.topic_name = "diffdrive_twist_2";
+    parser.topic_name = "diffdrive_twist_1";
     parser.message_type = ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist);
     parser.handler = (command_parser_handler_t)twist_to_differential_drive;
 
