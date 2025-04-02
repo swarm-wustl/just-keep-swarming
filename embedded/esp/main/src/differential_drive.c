@@ -53,8 +53,8 @@ command_parser_ret_t twist_to_differential_drive(const geometry_msgs__msg__Twist
     double angular_velocity = msgin->angular.z;
 
     // Compute individual wheel velocities
-    double left_velocity = linear_velocity - (angular_velocity * WHEELBASE / 2);
-    double right_velocity = linear_velocity + (angular_velocity * WHEELBASE / 2);
+    double left_velocity = linear_velocity + (angular_velocity * WHEELBASE / 2);
+    double right_velocity = linear_velocity - (angular_velocity * WHEELBASE / 2);
 
     // Find the maximum velocity for normalization
     double max_velocity = fmax(fabs(left_velocity), fabs(right_velocity));
@@ -157,15 +157,17 @@ motor_driver_ret_t esp32_l293d_differential_drive_handler(differential_drive_mot
     }
 
     // Control right motor
+    // Manually flip this motor because it goes the opposite direction
+    // maybe a hardware issue? idk
     if (msgin->right_dir == MOTOR_STOP) {
         gpio_set_level(IN3, LOW);
         gpio_set_level(IN4, LOW);
     } else if (msgin->right_dir == MOTOR_FORWARD) {
-        gpio_set_level(IN3, HIGH);
-        gpio_set_level(IN4, LOW);
-    } else if (msgin->right_dir == MOTOR_BACKWARD) {
         gpio_set_level(IN3, LOW);
         gpio_set_level(IN4, HIGH);
+    } else if (msgin->right_dir == MOTOR_BACKWARD) {
+        gpio_set_level(IN3, HIGH);
+        gpio_set_level(IN4, LOW);
     }
 
     // Set standby pin to HIGH

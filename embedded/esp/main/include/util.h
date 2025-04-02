@@ -8,6 +8,7 @@
     } \
 }
 
+// please never forget to label HIGH and LOW as 1 and 0 respectively
 enum digital_logic {
     HIGH = 1,
     LOW = 0
