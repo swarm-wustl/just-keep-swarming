@@ -12,12 +12,12 @@
 #define ANGLE_TOLERANCE 0.05     // rad
 
 // Angular constsants
-#define Kp_angular 2.0
-#define Kd_angular 0.5
+#define Kp_angular 0.5
+#define Kd_angular 0.0
 
 // Linear constants
-#define Kp_linear 1.0
-#define Kd_linear 0.3
+#define Kp_linear 0.5
+#define Kd_linear 0.0
 
 // Timeout Constants (we are giving the robot 3 minutes to move to a block, if
 // it can't do that it is cooked)
@@ -275,6 +275,18 @@ void PIDActionServer::execute(
       theta_error += 2 * M_PI;
     }
 
+    RCLCPP_INFO(this->get_logger(),
+                (std::string("current pos: ")
+                     .append(std::to_string(current_x).append(" ").append(
+                         std::to_string(current_x))))
+                    .c_str());
+
+    RCLCPP_INFO(this->get_logger(), (std::string("current angle: ")
+                                         .append(std::to_string(current_theta))
+                                         .c_str()));
+    RCLCPP_INFO(this->get_logger(), (std::string("theta error: ")
+                                         .append(std::to_string(theta_error))
+                                         .c_str()));
     // Turn robot to face target point
     if (fabs(theta_error) > ANGLE_TOLERANCE) {
       double angular_velocity =

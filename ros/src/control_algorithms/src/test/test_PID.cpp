@@ -68,6 +68,7 @@ TestPID_AC::TestPID_AC(const rclcpp::NodeOptions &options)
   // cuz implied lol
   auto future_goal = client_ptr_->async_send_goal(goal_msg, send_goal_options);
 
+  RCLCPP_INFO(this->get_logger(), "Goal sent!");
   // must verify ans
 }
 
