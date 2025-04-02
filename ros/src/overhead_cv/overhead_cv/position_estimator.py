@@ -1,7 +1,6 @@
 import rclpy
-from geometry_msgs.msg import Point, Pose, PoseStamped, Quaternion
+from geometry_msgs.msg import Point, Pose, PoseArray, PoseStamped, Quaternion
 from rclpy.node import Node
-from shared_types.msg import RobotPoints
 from std_msgs.msg import Header
 
 from overhead_cv.utils.multi_robot_estimator import MultiRobotStateEstimator
@@ -30,7 +29,7 @@ class PositionEstimator(Node):
 
         # Process data
         self.unfiltered_points_sub = self.create_subscription(
-            RobotPoints, "robot_observations", self.estimate_poses, 10
+            PoseArray, "robot_observations", self.estimate_poses, 10
         )
 
         # `num_robots` publishers
@@ -57,10 +56,11 @@ class PositionEstimator(Node):
 
         return True
 
-    def estimate_poses(self, measured_poses: RobotPoints):
+    def estimate_poses(self, measured_poses: PoseArray):
         """Update pose estimates after receiving new measurements"""
+
         measured_poses_list = [
-            Measurement(point.x, point.y) for point in measured_poses.points
+            Measurement(pose.position.x, pose.position.y) for pose in measured_poses.poses
         ]
         actions = {}  # TODO(sebtheiler): get the actions from PID control
 
@@ -69,20 +69,18 @@ class PositionEstimator(Node):
         self.prev_time = cur_time
 
         self.multi_robot_estimator.update_estimate(actions, measured_poses_list, dt)
-        self.publish_filtered_poses()
+        self.publish_filtered_poses(measured_poses)
 
-    def publish_filtered_poses(self):
+    def publish_filtered_poses(self, measured_poses: PoseArray):
         """Publish the estimated robot positions"""
         assert self.num_robots == len(self.multi_robot_estimator.estimators)
 
-        for i, estimator in enumerate(self.multi_robot_estimator.estimators):
+        for i, (estimator, measured_pose) in enumerate(zip(self.multi_robot_estimator.estimators, measured_poses.poses)):            
             pose = PoseStamped(
                 header=Header(frame_id="odom", stamp=self.get_clock().now().to_msg()),
                 pose=Pose(
                     position=Point(x=estimator.x.x, y=estimator.x.y),
-                    orientation=Quaternion(
-                        x=0.0, y=0.0, z=0.0, w=0.0
-                    ),  # TODO(eugene): orientation goes here
+                    orientation=measured_pose.orientation
                 ),
             )
 
