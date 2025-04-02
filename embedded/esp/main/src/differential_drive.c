@@ -103,8 +103,8 @@ command_parser_ret_t twist_to_differential_drive(const geometry_msgs__msg__Twist
     double pitch = msgin->angular.y;
 
     // Compute wheel velocities
-    left_velocity = roll + (pitch * WHEELBASE / 2);
-    right_velocity = roll - (pitch * WHEELBASE / 2);
+    left_velocity = pitch + (roll * WHEELBASE / 2);
+    right_velocity = pitch - (roll * WHEELBASE / 2);
 
     // Find the maximum velocity for normalization
     max_velocity = fmax(fabs(left_velocity), fabs(right_velocity));

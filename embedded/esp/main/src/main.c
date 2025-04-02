@@ -19,6 +19,8 @@
 #include "command_parser.h"
 #include "util.h"
 
+// TODO: refactor this to not use any of the malloc bs, just use a simple header file API
+
 static command_parser_t parser;
 static motor_driver_t motor_driver;
 
@@ -29,7 +31,7 @@ void app_main(void)
 #endif
 
     parser.node_name = "diffdrive_node";
-    parser.topic_name = "diffdrive_twist_1";
+    parser.topic_name = "diffdrive_twist_2";
     parser.message_type = ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist);
     parser.handler = (command_parser_handler_t)twist_to_differential_drive;
 
