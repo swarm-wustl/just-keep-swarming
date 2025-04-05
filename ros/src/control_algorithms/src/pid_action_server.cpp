@@ -179,7 +179,7 @@ void PIDActionServer::handle_accepted(
 */
 void PIDActionServer::execute(
     const std::shared_ptr<GoalHandlePID> goal_handle) {
-  RCLCPP_INFO(this->get_logger(), "Executing goal");
+  std::stringstream init_debug_msg;
 
   rclcpp::Rate loop_rate(50);  // this is how many iteratiosn per second, so its
                                // HZ, so exec everthing 0.05 seconds
@@ -190,6 +190,10 @@ void PIDActionServer::execute(
   std::stringstream robo_pub_name;
   std::stringstream robo_sub_name;
 
+  init_debug_msg << "Executing goal for: " << std::to_string(goal->robot_id);
+
+  RCLCPP_INFO(this->get_logger(), init_debug_msg.str().c_str());
+
   if (this->is_sim) {
     robo_pub_name << "/model/robot_" << std::to_string(goal->robot_id)
                   << "/cmd_vel";
@@ -199,7 +203,7 @@ void PIDActionServer::execute(
   } else {
     robo_pub_name << "/diffdrive_twist_" << std::to_string(goal->robot_id);
 
-    robo_sub_name << "/fliter_rob_pos_" << std::to_string(goal->robot_id);
+    robo_sub_name << "/robot" << std::to_string(goal->robot_id) << "/pose";
   }
 
   RCLCPP_INFO(this->get_logger(), robo_pub_name.str().c_str());
