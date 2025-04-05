@@ -2,6 +2,20 @@
 
 Updated (3/22/2025) (Jaxon):
 
+## Testing PID AS:
+
+>> launch sim
+ros2 launch simulation simulation_launch.py n_robots:=1 robot_offset:=1.0 robot_arrangement:=CIRCLE
+
+>> PID control
+ros2 run control_algorithms pid_control_action_server --ros-args -p is_sim:=true -p debug_lvl:=1 
+
+> debug_lvl: [0-2]: 0 is no debug print, 1 is just moving and turning commands, 2 is full debugging 
+
+
+>> Test client 
+ros2 run control_algorithms test_PID_AC --ros-args -p x_pos:=2.0 -p y_pos:=2.0 -p rob_id:=0 
+
 
 >> Assembler Action Server:
 

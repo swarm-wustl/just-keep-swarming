@@ -69,6 +69,9 @@ class PIDActionServer : public rclcpp::Node {
 
   std::mutex position_mutex_;
 
+  bool is_sim;
+  int debug_lvl;
+
   // could just make this an anon function
   void position_callback_(const shared_types::msg::PidPosition pos_msg_);
 };

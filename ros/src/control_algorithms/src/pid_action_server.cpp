@@ -110,6 +110,20 @@ PIDActionServer::PIDActionServer(const rclcpp::NodeOptions &options)
     : Node("pid_action_server", options) {
   using std::placeholders::_1, std::placeholders::_2;
 
+  this->declare_parameter<bool>("is_sim", false);
+
+  this->is_sim = this->get_parameter("is_sim").as_bool();
+
+  this->declare_parameter<int>("debug_lvl", 0);
+
+  this->debug_lvl = this->get_parameter("debug_lvl").as_int();
+
+  if (this->debug_lvl > 2 || this->debug_lvl < 0) {
+    RCLCPP_INFO(this->get_logger(), "give a valid debug lvl");
+    rclcpp::shutdown();
+    return;
+  }
+
   // update this and allow for calls
   this->robot_map_ = std::unordered_map<uint, geometry_msgs::msg::Pose>();
 
@@ -176,9 +190,17 @@ void PIDActionServer::execute(
   std::stringstream robo_pub_name;
   std::stringstream robo_sub_name;
 
-  robo_pub_name << "/model/robot_" << std::to_string(goal->robot_id)
-                << "/cmd_vel";
-  robo_sub_name << "/model/robot_" << std::to_string(goal->robot_id) << "/pose";
+  if (this->is_sim) {
+    robo_pub_name << "/model/robot_" << std::to_string(goal->robot_id)
+                  << "/cmd_vel";
+
+    robo_sub_name << "/model/robot_" << std::to_string(goal->robot_id)
+                  << "/pose";
+  } else {
+    robo_pub_name << "/diffdrive_twist_" << std::to_string(goal->robot_id);
+
+    robo_sub_name << "/fliter_rob_pos_" << std::to_string(goal->robot_id);
+  }
 
   RCLCPP_INFO(this->get_logger(), robo_pub_name.str().c_str());
   RCLCPP_INFO(this->get_logger(), robo_sub_name.str().c_str());
@@ -275,18 +297,22 @@ void PIDActionServer::execute(
       theta_error += 2 * M_PI;
     }
 
-    RCLCPP_INFO(this->get_logger(),
-                (std::string("current pos: ")
-                     .append(std::to_string(current_x).append(" ").append(
-                         std::to_string(current_x))))
-                    .c_str());
+    if (this->debug_lvl == 2) {
+      RCLCPP_INFO(this->get_logger(),
+                  (std::string("current pos: ")
+                       .append(std::to_string(current_x).append(" ").append(
+                           std::to_string(current_x))))
+                      .c_str());
 
-    RCLCPP_INFO(this->get_logger(), (std::string("current angle: ")
-                                         .append(std::to_string(current_theta))
-                                         .c_str()));
-    RCLCPP_INFO(this->get_logger(), (std::string("theta error: ")
-                                         .append(std::to_string(theta_error))
-                                         .c_str()));
+      RCLCPP_INFO(this->get_logger(),
+                  (std::string("current angle: ")
+                       .append(std::to_string(current_theta))
+                       .c_str()));
+      RCLCPP_INFO(this->get_logger(), (std::string("theta error: ")
+                                           .append(std::to_string(theta_error))
+                                           .c_str()));
+    }
+
     // Turn robot to face target point
     if (fabs(theta_error) > ANGLE_TOLERANCE) {
       double angular_velocity =
@@ -307,7 +333,7 @@ void PIDActionServer::execute(
       feedback->current_pose = current_pose;
       goal_handle->publish_feedback(feedback);
       // rclcpp::spin_some(this->get_node_base_interface());
-      if (debug_state != 1) {
+      if (debug_state != 1 && this->debug_lvl >= 1) {
         RCLCPP_INFO(this->get_logger(), "spinning");
         debug_state = 1;
       }
@@ -334,10 +360,10 @@ void PIDActionServer::execute(
       // Return early if still trying to reach target position
       feedback->current_pose = current_pose;
       goal_handle->publish_feedback(feedback);
-      // rclcpp::spin_some(this->get_node_base_interface());
-      if (debug_state != 2) {
+
+      if (debug_state != 2 && this->debug_lvl >= 1) {
         RCLCPP_INFO(this->get_logger(), "moving");
-        debug_state = 1;
+        debug_state = 2;
       }
       loop_rate.sleep();
       continue;

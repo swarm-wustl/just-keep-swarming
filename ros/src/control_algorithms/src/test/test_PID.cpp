@@ -14,6 +14,18 @@ TestPID_AC::TestPID_AC(const rclcpp::NodeOptions &options)
 
   // GENERATE TEST BOTS HERE
 
+  this->declare_parameter<double>("x_pos", 2.0);
+
+  double pos_x = this->get_parameter("x_pos").as_double();
+
+  this->declare_parameter<double>("y_pos", 2.0);
+
+  double pos_y = this->get_parameter("y_pos").as_double();
+
+  this->declare_parameter<int>("rob_id", 0);
+
+  int rob_id = this->get_parameter("rob_id").as_int();
+
   // ROBOT 0 TEST
   geometry_msgs::msg::Pose test_robot_0;
 
@@ -21,18 +33,15 @@ TestPID_AC::TestPID_AC(const rclcpp::NodeOptions &options)
   test_robot_0.position.set__y(0.0);
   test_robot_0.position.set__z(0.0);
 
-  this->test_robots[0] = test_robot_0;
+  this->test_robots[rob_id] = test_robot_0;
 
   geometry_msgs::msg::Pose test_robot_target_0;
 
-  test_robot_target_0.position.set__x(5.0);
-  test_robot_target_0.position.set__y(5.0);
-  test_robot_target_0.position.set__z(5.0);
+  test_robot_target_0.position.set__x(pos_x);
+  test_robot_target_0.position.set__y(pos_y);
+  test_robot_target_0.position.set__z(0.0);
 
-  this->test_robots_targets[0] = test_robot_target_0;
-
-  rclcpp::Publisher<geometry_msgs::msg::Pose>::SharedPtr pub_0 =
-      this->create_publisher<geometry_msgs::msg::Pose>("robo_pub_0", 10);
+  this->test_robots_targets[rob_id] = test_robot_target_0;
 
   this->create_subscription<geometry_msgs::msg::TwistStamped>(
       "/model/robot_0/pose", 10,
@@ -52,7 +61,7 @@ TestPID_AC::TestPID_AC(const rclcpp::NodeOptions &options)
 
   goal_msg.target_pose = test_robot_target_0;
 
-  goal_msg.robot_id = 0;
+  goal_msg.robot_id = rob_id;
   // should try make this bitch use a loop to generate these tests and queue
 
   send_goal_options.goal_response_callback =

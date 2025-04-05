@@ -23,6 +23,6 @@ Under the hood, this package generates a new `sdf` file from templates at launch
 
 ## TESTING OTHER STUFF
 
-ros2 run control_algorithms pid_control_action_server
+ros2 run control_algorithms pid_control_action_server --ros-args -p is_sim:=false
 
-ros2 run control_algorithms test_PID_AC
+ros2 run control_algorithms test_PID_AC --ros-args -p x_pos := 2.0 -p y_pos := 2.0 -p rob_id := 0 
