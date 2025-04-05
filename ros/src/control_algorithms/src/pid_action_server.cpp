@@ -9,10 +9,10 @@
 // to reset prev time, prev error, etc.)
 
 #define DISTANCE_TOLERANCE 0.05  // meters
-#define ANGLE_TOLERANCE 0.05     // rad
+#define ANGLE_TOLERANCE 0.2     // rad
 
 // Angular constsants
-#define Kp_angular 0.5
+#define Kp_angular 0.3
 #define Kd_angular 0.0
 
 // Linear constants
@@ -100,8 +100,11 @@ static double linear_error_to_velocity(double error,
 // Therefore, all quaternion input data should have x=0, y=0, w and z are
 // nonzero
 static double quaternion_to_yaw(geometry_msgs::msg::Quaternion pos) {
-  return atan2(2.0 * (pos.w * pos.z + pos.x * pos.y),
-               1.0 - 2.0 * (pos.y * pos.y + pos.z * pos.z));
+  // return atan2(2.0 * pos.w * pos.z, 1.0 - 2.0 * pos.z * pos.z);
+
+  double siny_cosp = 2 * (pos.w * pos.z);
+  double cosy_cosp = 1 - 2 * (pos.z * pos.z);
+  return atan2(siny_cosp, cosy_cosp); 
 }
 
 namespace control_algorithms {
@@ -209,18 +212,18 @@ void PIDActionServer::execute(
   RCLCPP_INFO(this->get_logger(), robo_pub_name.str().c_str());
   RCLCPP_INFO(this->get_logger(), robo_sub_name.str().c_str());
 
-  this->robot_pub_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
+  this->robot_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
       robo_pub_name.str(),
       10);  // sus shit
 
   geometry_msgs::msg::Pose current_pose;
   bool _ready = false;
-  rclcpp::Subscription<geometry_msgs::msg::Pose>::SharedPtr subscriber_pos_ =
-      this->create_subscription<geometry_msgs::msg::Pose>(
+  rclcpp::Subscription<geometry_msgs::msg::PoseStamped>::SharedPtr subscriber_pos_ =
+      this->create_subscription<geometry_msgs::msg::PoseStamped>(
           robo_sub_name.str(), 10,
           [this, &current_pose,
-           &_ready](const geometry_msgs::msg::Pose::SharedPtr msg) {
-            current_pose = *msg.get();
+           &_ready](const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
+            current_pose = msg.get()->pose;
             if (!_ready) {
               _ready = true;
               RCLCPP_INFO(this->get_logger(), "PID is ready, starting!!");
@@ -291,6 +294,12 @@ void PIDActionServer::execute(
     current_theta = quaternion_to_yaw(current_pose.orientation);
     target_theta = atan2(target_y - current_y, target_x - current_x);
 
+    RCLCPP_INFO(this->get_logger(), 
+      std::string("current theta: ")
+        .append(std::to_string(current_theta))
+        .append(" --- target theta: ")
+        .append(std::to_string(target_theta)).c_str());
+
     theta_error = target_theta - current_theta;
     // Normalize angle to [-pi, pi]
     if (theta_error > M_PI) {
@@ -318,14 +327,15 @@ void PIDActionServer::execute(
     }
 
     // Turn robot to face target point
-    if (fabs(theta_error) > ANGLE_TOLERANCE) {
+    // TODO: we shouldnt have to check this
+    if (fabs(theta_error) > ANGLE_TOLERANCE && fabs(fabs(theta_error) - M_PI) > ANGLE_TOLERANCE) {
       double angular_velocity =
           angular_error_to_velocity(theta_error, current_time);
 
       // TODO(preston): do something
 
-      geometry_msgs::msg::TwistStamped robo_msg =
-          create_twist(0.0, angular_velocity, current_time);
+      geometry_msgs::msg::Twist robo_msg =
+          create_twist(0.0, angular_velocity, current_time).twist;
 
       // printf("Rotating to target: Theta Error = %.2f\n", theta_error);
 
@@ -356,8 +366,8 @@ void PIDActionServer::execute(
       // TODO(preston): do something
       // printf("Moving to target: Distance Error = %.2f\n", distance_error);
 
-      geometry_msgs::msg::TwistStamped robo_msg =
-          create_twist(linear_velocity, 0.0, current_time);
+      geometry_msgs::msg::Twist robo_msg =
+          create_twist(0.8, 0.0, current_time).twist;
 
       this->robot_pub_->publish(robo_msg);
 

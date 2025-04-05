@@ -10,6 +10,7 @@
 
 #include "control_algorithms/action/pid.hpp"
 #include "geometry_msgs/msg/twist_stamped.hpp"
+#include "geometry_msgs/msg/pose_stamped.hpp"
 #include "rclcpp/rclcpp.hpp"
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "shared_types/msg/pid_position.hpp"
@@ -63,7 +64,7 @@ class PIDActionServer : public rclcpp::Node {
  private:
   rclcpp_action::Server<PID>::SharedPtr action_server_;
 
-  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr robot_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr robot_pub_;
 
   std::unordered_map<uint32_t, geometry_msgs::msg::Pose> robot_map_;
 
