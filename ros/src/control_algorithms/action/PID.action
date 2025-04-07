@@ -1,9 +1,7 @@
-# Request
 std_msgs/Header header
 geometry_msgs/Pose target_pose
 uint16 robot_id
 ---
-# Response
 int16 error_code
 ---
-# Feedback
+geometry_msgs/Pose current_pose

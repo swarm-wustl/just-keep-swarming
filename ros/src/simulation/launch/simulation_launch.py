@@ -5,7 +5,8 @@ Launch the Gazebo simulation
 import os
 
 from ament_index_python.packages import get_package_share_directory
-from launch_ros.actions import Node
+
+# from launch_ros.actions import Node
 
 from launch import LaunchDescription
 from launch.actions import DeclareLaunchArgument, ExecuteProcess, OpaqueFunction
@@ -80,22 +81,23 @@ def generate_launch_description():
                     "run",
                     "ros_gz_bridge",
                     "parameter_bridge",
-                    f"/model/robot_{n}/cmd_vel@geometry_msgs/msg/Twist]ignition.msgs.Twist",
+                    f"/model/robot_{n}/cmd_vel@geometry_msgs/msg/TwistStamped]ignition.msgs.Twist",
+                    f"/model/robot_{n}/pose@geometry_msgs/msg/Pose@ignition.msgs.Pose",
                 ]
             )
             for n in range(n_robots_value)
         ]
 
-    def init_random_control(context, configs):
-        n_robots_value = int(context.perform_substitution(configs["n_robots"]))
-        return [
-            Node(
-                package="demo_control",
-                executable="random_control",
-                name="random_control",
-                parameters=[{"num_robots": n_robots_value}],
-            )
-        ]
+    # def init_random_control(context, configs):
+    #     n_robots_value = int(context.perform_substitution(configs["n_robots"]))
+    #     return [
+    #         Node(
+    #             package="demo_control",
+    #             executable="random_control",
+    #             name="random_control",
+    #             parameters=[{"num_robots": n_robots_value}],
+    #         )
+    #     ]
 
     package_share_dir = get_package_share_directory("simulation")
     filenames = get_filenames(package_share_dir)
@@ -107,9 +109,9 @@ def generate_launch_description():
     topic_bridges_action = OpaqueFunction(
         function=lambda context: generate_topic_bridges(context, configs)
     )
-    init_random_control_action = OpaqueFunction(
-        function=lambda context: init_random_control(context, configs)
-    )
+    # init_random_control_action = OpaqueFunction(
+    #     function=lambda context: init_random_control(context, configs)
+    # )
     run_ign_gazebo = ExecuteProcess(
         cmd=["ign", "gazebo", filenames["compiled_world_filename"]]
     )
@@ -120,6 +122,6 @@ def generate_launch_description():
             compile_world_action,
             run_ign_gazebo,
             topic_bridges_action,
-            init_random_control_action,
+            # init_random_control_action,
         ]
     )
