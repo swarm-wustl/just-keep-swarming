@@ -2,5 +2,6 @@ build/
 install/
 log/
 __pycache__/
+**/.vscode/
 **/*/.vscode/
 .vscode/
