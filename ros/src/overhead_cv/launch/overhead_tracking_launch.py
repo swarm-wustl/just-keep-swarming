@@ -20,7 +20,7 @@ def generate_launch_description():
                 "N", default_value="2", description="Number of robots"
             ),
             DeclareLaunchArgument(
-                "cam_input", default_value="0", description="Camera input index"
+                "cam_input", default_value="3", description="Camera input index"
             ),
             # Camera Feed Node
             launch_ros.actions.Node(
