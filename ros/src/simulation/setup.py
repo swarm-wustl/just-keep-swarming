@@ -23,11 +23,13 @@ setup(
     ],
     install_requires=["setuptools"],
     zip_safe=True,
-    maintainer="sebtheiler",
+    maintainer="sebtheiler,jaxonpoentis",
     maintainer_email="25444757+sebtheiler@users.noreply.github.com",
     description="TODO: Package description",
     license="TODO: License declaration",
     entry_points={
-        "console_scripts": [],
+        "console_scripts": [
+            "random_control = simulation.demo_control:main",
+        ],
     },
 )

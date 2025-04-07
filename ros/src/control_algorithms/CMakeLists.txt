@@ -77,10 +77,10 @@ target_include_directories(
           $<INSTALL_INTERFACE:include>
           ${CMAKE_CURRENT_SOURCE_DIR}/include/control_algorithms/algorithms)
 ament_target_dependencies(pid_action_server "rclcpp" "rclcpp_action"
-                          "rclcpp_components" "nav_msgs")
+                          "rclcpp_components" "nav_msgs" "shared_types")
 rclcpp_components_register_node(
   pid_action_server PLUGIN "control_algorithms::PIDActionServer" EXECUTABLE
-  demo_pid_action_server)
+  pid_control_action_server)
 install(
   TARGETS pid_action_server
   ARCHIVE DESTINATION lib
@@ -124,6 +124,21 @@ install(
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION BIN)
 
+# === TESTING CLIENTS ===
+add_library(test_PID SHARED src/test/test_PID.cpp)
+target_include_directories(
+  test_PID PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                   $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(test_PID "rclcpp" "rclcpp_action" "rclcpp_components"
+                          "nav_msgs" "shared_types")
+rclcpp_components_register_node(
+  test_PID PLUGIN "control_algorithms::TestPID_AC" EXECUTABLE test_PID_AC)
+install(
+  TARGETS test_PID
+  ARCHIVE DESTINATION lib
+  LIBRARY DESTINATION lib
+  RUNTIME DESTINATION BIN)
+
 # --- necessary for using actions in same package in which they are defined
 rosidl_get_typesupport_target(cpp_typesupport_target ${PROJECT_NAME}
                               "rosidl_typesupport_cpp")
@@ -132,6 +147,7 @@ target_link_libraries(mrpp_action_client "${cpp_typesupport_target}")
 target_link_libraries(asm_action_server "${cpp_typesupport_target}")
 target_link_libraries(pid_action_server "${cpp_typesupport_target}")
 target_link_libraries(assembler_action_client "${cpp_typesupport_target}")
+target_link_libraries(test_PID "${cpp_typesupport_target}")
 
 # === Testing ===
 if(BUILD_TESTING)

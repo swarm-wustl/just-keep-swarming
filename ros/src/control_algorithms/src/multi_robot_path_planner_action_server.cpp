@@ -1,6 +1,7 @@
 // Copyright 2024 Sebastian Theiler, Jaxon Poentis
 #include "control_algorithms/multi_robot_path_planner_action_server.hpp"
 
+#include "control_algorithms/action/pid.hpp"
 #include "control_algorithms/algorithms/astar.hpp"
 #include "control_algorithms/algorithms/common.hpp"
 #include "control_algorithms/algorithms/pplan.hpp"
@@ -9,6 +10,7 @@
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
 #include "shared_types/msg/robot_position.hpp"
+
 namespace control_algorithms {
 
 Cell pose_to_cell(geometry_msgs::msg::Pose pose,
@@ -74,12 +76,30 @@ MultiRobotPathPlannerActionServer::MultiRobotPathPlannerActionServer(
     : Node("multi_robot_path_planner_action_server", options) {
   using std::placeholders::_1, std::placeholders::_2;
 
+  // generating default map
+  this->declare_parameter<int>("width", 300);
+  this->declare_parameter<int>("height", 300);
+  this->declare_parameter<double>("res", 0.5);
+
+  // Get parameters
+  int map_width = this->get_parameter("width").as_int();
+  int map_height = this->get_parameter("height").as_int();
+  double res = this->get_parameter("res").as_double();
+
+  const std::vector<int8_t> map_data(map_height * map_width, 0);
+
+  this->current_map.set__data(map_data);
+  this->current_map.info.set__height(map_height);
+  this->current_map.info.set__width(map_width);
+  this->current_map.info.set__resolution(res);
+
   this->action_server_ = rclcpp_action::create_server<MultiRobotPathPlan>(
       this, "multi_robot_path_planner",
       std::bind(&MultiRobotPathPlannerActionServer::handle_goal, this, _1, _2),
       std::bind(&MultiRobotPathPlannerActionServer::handle_cancel, this, _1),
       std::bind(&MultiRobotPathPlannerActionServer::handle_accepted, this, _1));
 
+  // may need a service call to get an initial map
   this->og_map_sub = this->create_subscription<nav_msgs::msg::OccupancyGrid>(
       "og_map", 10,
       std::bind(&MultiRobotPathPlannerActionServer::update_map, this, _1));
@@ -162,10 +182,51 @@ void MultiRobotPathPlannerActionServer::execute(
   // the positions
   vector<Cell> robots = {};
 
+  // should I have the robots positions always being updated like this?
+  // what if we just make a service call, that just gets the position ONLY for
+  // path planning
+
+  // fuck it im making a service call
+
+  // std::shared_ptr<rclcpp::Node> node =
+  // rclcpp::Node::make_shared("add_two_ints_client");
+  rclcpp::Client<shared_types::srv::PositionList>::SharedPtr client =
+      this->create_client<shared_types::srv::PositionList>("position_list");
+
+  auto robo_pos_request =
+      std::make_shared<shared_types::srv::PositionList::Request>();
+
+  while (!client->wait_for_service(std::chrono::seconds(1))) {
+    if (!rclcpp::ok()) {
+      RCLCPP_ERROR(this->get_logger(),
+                   "Interrupted while waiting for the service. Exiting.");
+      result->error_code = FAILED_TO_PLAN;
+      result->error_msg = "FAILED";
+      goal_handle->canceled(result);
+      RCLCPP_INFO(this->get_logger(), "Planning failed to get robot pos");
+      return;
+    }
+    RCLCPP_INFO(this->get_logger(), "service not available, waiting again...");
+  }
+
+  auto robot_pos_result = client->async_send_request(robo_pos_request);
+
+  if (rclcpp::spin_until_future_complete(this->get_node_base_interface(),
+                                         robot_pos_result) !=
+      rclcpp::FutureReturnCode::SUCCESS) {
+    RCLCPP_INFO(this->get_logger(),
+                "Failed service request to get robot positions");
+    result->error_code = FAILED_TO_PLAN;
+    result->error_msg = "FAILED";
+    goal_handle->canceled(result);
+    return;
+  }
+
+  this->robot_poses.set__poses(robot_pos_result.get()->poses.poses);
+
   for (const geometry_msgs::msg::Pose robot_pose : this->robot_poses.poses) {
     robots.push_back(pose_to_cell(robot_pose, used_map));
   }
-
   // Fake starting positions in place of state estimation
   // vector<Cell> robots = {
   //     {0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5},
@@ -213,7 +274,7 @@ void MultiRobotPathPlannerActionServer::execute(
     result->error_msg = "Failed to generate a plan";
     goal_handle->abort(result);
   }
-
+  // i here is the current time step in the plan
   size_t i = 0;
   while (i < plan.size()) {
     if (goal_handle->is_canceling()) {
@@ -223,6 +284,8 @@ void MultiRobotPathPlannerActionServer::execute(
       RCLCPP_INFO(this->get_logger(), "Planning canceled");
       return;
     }
+
+    /*
 
     feedback->navigation_time = this->now() - start_time;
     feedback->current_poses = {};
@@ -241,50 +304,83 @@ void MultiRobotPathPlannerActionServer::execute(
 
     feedback->num_goals_reached = num_goals_reached;
     goal_handle->publish_feedback(feedback);
-
+    */
     // this tracks how much robots made it to each goal for i-th timestep
 
-    std::unordered_set<int> passed_j = {};
+    /*
 
-    while (passed_j.size() < robots.size()) {
-      for (int j = 0; j < static_cast<int>(plan[i].size()); ++j) {
-        // the robot has already got to its position
-        if (passed_j.find(j) != passed_j.end()) continue;
+      Later: possibily create paths to run in parrallel, or just concurrently
 
-        // LOL
-        Cell &c = plan[i][j];
+    */
 
-        // // Current
-        double cx = robot_poses.poses[j].position.x;
-        double cy = robot_poses.poses[j].position.y;
+    using PIDGoalHandle =
+        rclcpp_action::ClientGoalHandle<control_algorithms::action::PID>;
 
-        // (Jaxon)
-        // im having this just return the pixel coord so it compiles LOL
-        // we're going to need to implement the python code for this.
-        // Is c.x going to be the grid x or real pos x, we can make the real pos
-        // be the point in the cnter of the grid would be pretty simple to calc
-        // that point
-        double tx = x_cell_to_real(c.x, used_map);
-        double ty = y_cell_to_real(c.y, used_map);
+    std::vector<std::shared_future<PIDGoalHandle::SharedPtr>> future_queue_;
 
-        // if the stuff is close enuf, then mark in the set that robot j has
-        // reach its target, which will then be skipped above.
-        if (std::fabs(cx - tx) <= this->cut_off_dist &&
-            std::fabs(cy - ty) <= this->cut_off_dist) {
-          passed_j.insert(j);
-        }
+    uint16_t robo_id = 0;
 
-        // this is a little questionable, we're publishing the points even tho
-        // there could be no update, we should pontially move this into
-        // update_poses, and then keep track of the current timestamp with a
-        // member variable this should work for now tho
-        geometry_msgs::msg::Pose pose = create_pose(tx, ty);
+    for (Cell target_goal : plan[i]) {
+      // create goal
+      auto send_goal_options = rclcpp_action::Client<
+          control_algorithms::action::PID>::SendGoalOptions();
 
-        this->robot_feedback(pose, robot_poses.poses[j], j);
-      }
+      auto goal_msg = control_algorithms::action::PID::Goal();
 
-      loop_rate.sleep();
+      auto target_pose = geometry_msgs::msg::Pose();
+
+      double tx = x_cell_to_real(target_goal.x, used_map);
+      double ty = y_cell_to_real(target_goal.y, used_map);
+
+      target_pose.position.x = tx;
+      target_pose.position.y = ty;
+
+      goal_msg.target_pose = target_pose;
+
+      goal_msg.robot_id = robo_id;
+
+      auto client_ptr_ =
+          rclcpp_action::create_client<control_algorithms::action::PID>(this,
+                                                                        "pid");
+
+      // this is of type std::shared_future<PIDGoalHandle::SharedPtr>, auto used
+      // cuz implied lol
+      auto future_goal =
+          client_ptr_->async_send_goal(goal_msg, send_goal_options);
+
+      future_queue_.push_back(future_goal);
+      robo_id++;
     }
+
+    // GOOD LUCK LOL
+    rclcpp::Rate rate(10);  // 10 Hz loop
+    while (!future_queue_.empty()) {
+      future_queue_.erase(
+          // erease the future from the queue if its ready, meaning its finished
+          // as progress -> ready when done
+          std::remove_if(
+              future_queue_.begin(), future_queue_.end(),
+
+              [this](std::shared_future<PIDGoalHandle::SharedPtr> &fut) {
+                if (fut.wait_for(std::chrono::seconds(0)) ==
+                    std::future_status::ready) {
+                  RCLCPP_INFO(this->get_logger(),
+                              "a robot reached a goal, removing future");
+                  return true;
+                }
+                return false;
+              }),
+          future_queue_.end());
+
+      // idk wtf this is doing
+      if (rclcpp::ok()) {
+        rclcpp::spin_some(this->get_node_base_interface());
+      }
+      rate.sleep();
+    }
+
+    // success! move forward
+
     ++i;
   }
 
@@ -294,6 +390,17 @@ void MultiRobotPathPlannerActionServer::execute(
     RCLCPP_INFO(this->get_logger(), "Planning succeeded");
   }
 }
+
+// void MultiRobotPathPlannerActionServer::create_new_goal (
+//   unsigned robo_id,
+//   Cell target,
+//   vector<control_algorithms::PIDActionServer> &current_servers ) {
+//     rclcpp::NodeOption options(); //default options
+//     control_algorithms::PIDActionServer PID_controller(options, robo_id);
+
+//     //RCLCPP_COMPONENTS_REGISTER_NODE()
+
+// }
 
 // Fixed this here as I was getting errors with this function being const
 // updating a member variable

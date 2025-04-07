@@ -7,7 +7,7 @@ The Simulation package launches the Gazebo simulator.
 To launch the Gazebo simulator, run:
 
 ```
-ros2 launch simulation simulation_launch.py n_robots:=22 robot_offset:=1.0 robot_arrangement:=CIRCLE
+ros2 launch simulation simulation_launch.py n_robots:=1 robot_offset:=1.0 robot_arrangement:=CIRCLE
 ```
 
 | **Parameter**     | **Required** | **Description**                                           | **Type**                 | **Default** |
@@ -19,3 +19,10 @@ ros2 launch simulation simulation_launch.py n_robots:=22 robot_offset:=1.0 robot
 ## Details
 
 Under the hood, this package generates a new `sdf` file from templates at launch time. The templates are located in the `description/` folder, which also contains a `yaml` file with easily modifiable robot parameters. `sdf` files do not support variables, so a custom Python script is used to substitute `{% VARIABLES %}` with their values.
+
+
+## TESTING OTHER STUFF
+
+ros2 run control_algorithms pid_control_action_server --ros-args -p is_sim:=false
+
+ros2 run control_algorithms test_PID_AC --ros-args -p x_pos := 2.0 -p y_pos := 2.0 -p rob_id := 0 
