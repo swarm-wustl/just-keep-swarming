@@ -6,11 +6,15 @@ from numpy.typing import NDArray
 
 H = np.array(
     [
-        [1, 0, 0, 0, 0],
-        [0, 1, 0, 0, 0],
-        # [0, 0, 0, 0, 0],
+        [1, 0, 0, 0, 0],  # x
+        [0, 1, 0, 0, 0],  # y
+        [0, 0, 0, 1, 0],  # theta
     ]
 )
+
+
+def normalize_angle(angle: float) -> float:
+    return (angle + np.pi) % (2 * np.pi) - np.pi
 
 
 # pylint: disable=too-many-arguments,too-many-locals
@@ -23,6 +27,7 @@ def kalman_filter(
     alpha=0.001,
     beta=0.01,
 ) -> Tuple[NDArray, NDArray]:
+    z[2] = normalize_angle(z[2])
     F = np.array(
         [
             [1, 0, dt * cos(x_prev[3]), 0, 0],
@@ -45,8 +50,10 @@ def kalman_filter(
 
     x_prior = F @ x_prev + B @ u
 
-    Q = np.eye(5) * alpha
-    R = np.eye(2) * beta  # np.eye(3) * beta
+    # Q = np.eye(5) * alpha
+    Q = np.diag([alpha, alpha, alpha, alpha, 10 * alpha])
+    # R = np.eye(3) * beta
+    R = np.diag([beta, beta, 2.0])
 
     P_prior = F @ P_prev @ F.T + Q
 
@@ -55,5 +62,6 @@ def kalman_filter(
     P = (np.eye(5) - K @ H) @ P_prior
 
     x = x_prior + K @ (z - H @ x_prior)
+    x[3] = normalize_angle(x[3])
 
     return x, P
