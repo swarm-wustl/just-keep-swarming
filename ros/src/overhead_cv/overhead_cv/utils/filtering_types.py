@@ -8,9 +8,10 @@ from numpy.typing import NDArray
 class Measurement:
     x: float
     y: float
+    theta: float
 
     def to_np(self) -> NDArray:
-        return np.array([self.x, self.y])
+        return np.array([self.x, self.y, self.theta])
 
     @staticmethod
     def from_np(arr: NDArray):
@@ -21,8 +22,8 @@ class Measurement:
 class State:
     x: float = 0.0
     y: float = 0.0
-    orientation: float = 0.0
     lin_vel: float = 0.0
+    orientation: float = 0.0
     ang_vel: float = 0.0
 
     def to_np(self) -> NDArray:
