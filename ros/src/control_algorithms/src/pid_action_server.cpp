@@ -8,11 +8,11 @@
 
 // to reset prev time, prev error, etc.)
 
-#define DISTANCE_TOLERANCE 0.05  // meters
+#define DISTANCE_TOLERANCE 0.10  // meters
 #define ANGLE_TOLERANCE 0.2      // rad
 
 // Angular constsants
-#define Kp_angular 0.3
+#define Kp_angular 0.8
 #define Kd_angular 0.0
 
 // Linear constants
@@ -295,12 +295,6 @@ void PIDActionServer::execute(
     current_theta = quaternion_to_yaw(current_pose.orientation);
     target_theta = atan2(target_y - current_y, target_x - current_x);
 
-    RCLCPP_INFO(this->get_logger(), std::string("current theta: ")
-                                        .append(std::to_string(current_theta))
-                                        .append(" --- target theta: ")
-                                        .append(std::to_string(target_theta))
-                                        .c_str());
-
     theta_error = target_theta - current_theta;
     // Normalize angle to [-pi, pi]
     if (theta_error > M_PI) {
@@ -312,6 +306,16 @@ void PIDActionServer::execute(
     }
 
     if (this->debug_lvl == 2) {
+      std::stringstream debug_statement;
+      debug_statement << "for robot " << goal->robot_id;
+      RCLCPP_INFO(this->get_logger(), debug_statement.str().c_str());
+
+      RCLCPP_INFO(this->get_logger(), std::string("current theta: ")
+                                          .append(std::to_string(current_theta))
+                                          .append(" --- target theta: ")
+                                          .append(std::to_string(target_theta))
+                                          .c_str());
+
       RCLCPP_INFO(this->get_logger(),
                   (std::string("current pos: ")
                        .append(std::to_string(current_x).append(" ").append(
@@ -327,10 +331,15 @@ void PIDActionServer::execute(
                                            .c_str()));
     }
 
+    // If angle is within tolerance, move robot to reach target distance
+    double distance_error =
+        sqrt(pow(target_x - current_x, 2) + pow(target_y - current_y, 2));
+
     // Turn robot to face target point
     // TODO(jaxon): we shouldnt have to check this
     if (fabs(theta_error) > ANGLE_TOLERANCE &&
-        fabs(fabs(theta_error) - M_PI) > ANGLE_TOLERANCE) {
+        fabs(fabs(theta_error) - M_PI) > ANGLE_TOLERANCE &&
+        distance_error > 1.5 * DISTANCE_TOLERANCE) {
       double angular_velocity =
           angular_error_to_velocity(theta_error, current_time);
 
@@ -350,16 +359,14 @@ void PIDActionServer::execute(
       // goal_handle->publish_feedback(feedback);
       // rclcpp::spin_some(this->get_node_base_interface());
       if (debug_state != 1 && this->debug_lvl >= 1) {
-        RCLCPP_INFO(this->get_logger(), "spinning");
+        std::stringstream debug_statement;
+        debug_statement << "spinnging " << goal->robot_id;
+        RCLCPP_INFO(this->get_logger(), debug_statement.str().c_str());
         debug_state = 1;
       }
       loop_rate.sleep();
       continue;
     }
-
-    // If angle is within tolerance, move robot to reach target distance
-    double distance_error =
-        sqrt(pow(target_x - current_x, 2) + pow(target_y - current_y, 2));
 
     if (distance_error > DISTANCE_TOLERANCE) {
       double linear_velocity =
@@ -378,7 +385,9 @@ void PIDActionServer::execute(
       // goal_handle->publish_feedback(feedback);
 
       if (debug_state != 2 && this->debug_lvl >= 1) {
-        RCLCPP_INFO(this->get_logger(), "moving");
+        std::stringstream debug_statement;
+        debug_statement << "moving " << goal->robot_id;
+        RCLCPP_INFO(this->get_logger(), debug_statement.str().c_str());
         debug_state = 2;
       }
       loop_rate.sleep();
@@ -386,7 +395,11 @@ void PIDActionServer::execute(
     }
     reached_goal = true;
 
-    rclcpp::spin_some(this->get_node_base_interface());
+    // stoping robot
+    geometry_msgs::msg::Twist robo_msg =
+        create_twist(0.0, 0.0, current_time).twist;
+
+    this->robot_pub_->publish(robo_msg);
     loop_rate.sleep();
   }
 
