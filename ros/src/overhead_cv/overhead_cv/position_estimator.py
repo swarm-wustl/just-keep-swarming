@@ -1,9 +1,12 @@
+import math
+
 import rclpy
-from geometry_msgs.msg import Point, Pose, PoseArray, PoseStamped, Quaternion
+from geometry_msgs.msg import Point, Pose, PoseArray, PoseStamped
 from rclpy.node import Node
 from std_msgs.msg import Header
 
 from overhead_cv.utils.multi_robot_estimator import MultiRobotStateEstimator
+from overhead_cv.utils.quat_to_yaw import quaternion_from_yaw
 
 from .utils.filtering_types import Measurement
 
@@ -60,7 +63,12 @@ class PositionEstimator(Node):
         """Update pose estimates after receiving new measurements"""
 
         measured_poses_list = [
-            Measurement(pose.position.x, pose.position.y) for pose in measured_poses.poses
+            Measurement(
+                pose.position.x,
+                pose.position.y,
+                2 * math.acos(pose.orientation.w),  # TODO(sebtheiler): check
+            )
+            for pose in measured_poses.poses
         ]
         actions = {}  # TODO(sebtheiler): get the actions from PID control
 
@@ -69,18 +77,24 @@ class PositionEstimator(Node):
         self.prev_time = cur_time
 
         self.multi_robot_estimator.update_estimate(actions, measured_poses_list, dt)
-        self.publish_filtered_poses(measured_poses)
+        self.publish_filtered_poses()  # measured_poses)
 
-    def publish_filtered_poses(self, measured_poses: PoseArray):
+    def publish_filtered_poses(self):  # , measured_poses: PoseArray):
         """Publish the estimated robot positions"""
         assert self.num_robots == len(self.multi_robot_estimator.estimators)
 
-        for i, (estimator, measured_pose) in enumerate(zip(self.multi_robot_estimator.estimators, measured_poses.poses)):            
+        # for i, (estimator, measured_pose) in enumerate(
+        #     zip(self.multi_robot_estimator.estimators, measured_poses.poses)
+        # ):
+        for i, estimator in enumerate(self.multi_robot_estimator.estimators):
+            theta = estimator.x.orientation
+            q = quaternion_from_yaw(theta)
+
             pose = PoseStamped(
                 header=Header(frame_id="odom", stamp=self.get_clock().now().to_msg()),
                 pose=Pose(
                     position=Point(x=estimator.x.x, y=estimator.x.y),
-                    orientation=measured_pose.orientation
+                    orientation=q,  # measured_pose.orientation,
                 ),
             )
 
