@@ -62,3 +62,6 @@ disable=missing-docstring,assigning-non-slot,unspecified-encoding,no-name-in-mod
 
 [DESIGN]
 max-attributes=8
+
+[FORMAT]
+max-locals=30
