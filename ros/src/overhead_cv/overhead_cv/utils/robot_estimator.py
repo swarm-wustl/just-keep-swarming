@@ -12,7 +12,7 @@ def low_pass_filter(new_angle, prev_filtered, alpha=0.15):
     return alpha * new_angle + (1 - alpha) * prev_filtered
 
 
-# pylint: disable=too-few-public-methods
+# pylint: disable=too-few-public-methods,too-many-instance-attributes
 class RobotStateEstimator:
     def __init__(self, x=State(), q=0.09, r=0.005):
         self.x = x
@@ -30,21 +30,13 @@ class RobotStateEstimator:
             self.x = State(z.x, z.y, 0, z.theta)
             print("reset!")
 
-        # if z.theta == 0:
-        #     return self.x, self.P
+        # Discard unreliable measurements
         if (
             math.hypot(self.x.x - z.x, self.x.y - z.y) > self.dist_threshold
             or abs(normalize_angle(self.x.orientation) - normalize_angle(z.theta))
             > self.ang_threshold
         ) and self.num_estimates_received > 50:
-            # print("unreliable")
-            # print(math.hypot(self.x.x - z.x, self.x.y - z.y), self.dist_threshold)
-            # print(
-            #     abs(normalize_angle(self.x.orientation) - normalize_angle(z.theta)),
-            #     self.ang_threshold,
-            # )
             self.reset_counter += 1
-            # unreliable measurement
             return self.x, self.P
 
         self.reset_counter = 0
@@ -52,7 +44,6 @@ class RobotStateEstimator:
         x, P = kalman_filter(
             self.x.to_np(), u.to_np(), z.to_np(), self.P, dt, self.q, self.r
         )
-        # x[3] = low_pass_filter(z.theta, self.x.orientation)
         x[3] = low_pass_filter(x[3], self.x.orientation, alpha=0.8)
 
         if save:
