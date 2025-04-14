@@ -4,11 +4,14 @@ Updated (3/22/2025) (Jaxon):
 
 ## Testing PID AS:
 
+
+ros2 launch overhead_cv overhead_tracking_launch.py
+
 >> launch sim
 ros2 launch simulation simulation_launch.py n_robots:=1 robot_offset:=1.0 robot_arrangement:=CIRCLE
 
 >> PID control
-ros2 run control_algorithms pid_control_action_server --ros-args -p is_sim:=true -p debug_lvl:=1 
+ros2 run control_algorithms pid_control_action_server --ros-args -p is_sim:=false -p debug_lvl:=1 
 
 > debug_lvl: [0-2]: 0 is no debug print, 1 is just moving and turning commands, 2 is full debugging 
 

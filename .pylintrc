@@ -61,7 +61,7 @@ ignore-imports=yes
 disable=missing-docstring,assigning-non-slot,unspecified-encoding,no-name-in-module,duplicate-code
 
 [DESIGN]
-max-attributes=8
+max-attributes=10
 
 [FORMAT]
 max-locals=30
