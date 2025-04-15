@@ -1,4 +1,4 @@
-from typing import Dict, List
+from typing import List
 
 from overhead_cv.utils.filtering_types import Command, Measurement
 from overhead_cv.utils.hungarian import hungarian
@@ -13,7 +13,7 @@ class MultiRobotStateEstimator:
         self.r = r
 
     def update_estimate(
-        self, actions: Dict[int, Command], measurements: List[Measurement], dt=1.0
+        self, control_input: List[Command], measurements: List[Measurement], dt=1.0
     ) -> List[int]:
         """
         Update estimated positions for each robot based
@@ -21,10 +21,13 @@ class MultiRobotStateEstimator:
         """
         current_states = [e.x for e in self.estimators]
         assignments = hungarian(current_states, measurements)
+        assert (
+            len(control_input) == self.num_robots
+        ), "Did not receive control input for every robot"
 
         for robot_i, measurement_assignment in enumerate(assignments):
-            z = measurements[measurement_assignment]
-            u = actions.get(robot_i, Command(0, 0))
+            z = measurements[measurement_assignment]  # unordered
+            u = control_input[robot_i]  # ordered
             self.estimators[robot_i].update_estimate(u, z, dt)
 
         return assignments

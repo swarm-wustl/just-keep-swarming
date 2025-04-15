@@ -18,16 +18,22 @@ class Measurement:
         return State(*arr)
 
 
+LEN_STATE_VEC = 6
+
+
 @dataclass
 class State:
     x: float = 0.0
     y: float = 0.0
     lin_vel: float = 0.0
-    orientation: float = 0.0
+    cos_theta: float = 0.0
+    sin_theta: float = 0.0
     ang_vel: float = 0.0
 
     def to_np(self) -> NDArray:
-        return np.array([self.x, self.y, self.orientation, self.lin_vel, self.ang_vel])
+        return np.array(
+            [self.x, self.y, self.cos_theta, self.sin_theta, self.lin_vel, self.ang_vel]
+        )
 
     @staticmethod
     def from_np(arr: NDArray):
