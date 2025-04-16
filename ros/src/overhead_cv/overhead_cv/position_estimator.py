@@ -1,7 +1,10 @@
 import math
 
 import rclpy
-from geometry_msgs.msg import Point, Pose, PoseArray, PoseStamped, Twist
+from geometry_msgs.msg import Point, Pose, PoseArray, PoseStamped
+
+from shared_types.srv import PositionList
+
 from rclpy.node import Node
 from std_msgs.msg import Header
 
@@ -61,7 +64,10 @@ class PositionEstimator(Node):
         self.calibration_timer = self.create_timer(
             calibration_time or 3, self.stop_calibrating
         )
-
+        self.robot_service = self.create_service(
+            PositionList, "get_full_robo_pos", self.get_full_robo_pos
+        )
+        
     # TODO(sebtheiler): does there need to be a timer to clear this or does the robot keep going?
     def create_control_callback(self, i: int):
         def callback(msg: Twist):
@@ -89,7 +95,6 @@ class PositionEstimator(Node):
             )
             for pose in measured_poses.poses
         ]
-        # actions = {}  # TODO(sebtheiler): get the actions from PID control
 
         cur_time = self.get_clock().now()
         dt = (cur_time - self.prev_time).nanoseconds / 1e9
@@ -117,6 +122,23 @@ class PositionEstimator(Node):
             )
 
             self._publishers[i].publish(pose)
+
+    def get_full_robo_pos(self, _, response):
+        response.robot_n = self.num_robots
+        robo_pos: Pose = PoseArray()
+
+        pose_list = [
+            Pose(
+                position=Point(x=estimator.x.x, y=estimator.x.y),
+                orientation=quaternion_from_yaw(
+                    estimator.x.orientation
+                ),  # measured_pose.orientation,
+            )
+            for estimator in self.multi_robot_estimator.estimators
+        ]
+
+        robo_pos.poses = pose_list
+        return robo_pos
 
 
 def main(args=None):

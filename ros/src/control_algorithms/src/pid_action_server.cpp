@@ -3,8 +3,8 @@
 
 #include "rclcpp_components/register_node_macro.hpp"
 
-#define DISTANCE_TOLERANCE 0.10  // meters
-#define ANGLE_TOLERANCE 0.2      // rad
+#define DISTANCE_TOLERANCE 0.10 // meters
+#define ANGLE_TOLERANCE 0.2     // rad
 #define Kp_angular 0.8
 #define Kd_angular 0.0
 #define Kp_linear 0.5
@@ -20,8 +20,8 @@ struct PIDState {
   double linear_error_prev = 0.0;
 };
 
-static geometry_msgs::msg::TwistStamped create_twist(
-    double lin_x, double rot_z, builtin_interfaces::msg::Time time_) {
+static geometry_msgs::msg::TwistStamped
+create_twist(double lin_x, double rot_z, builtin_interfaces::msg::Time time_) {
   geometry_msgs::msg::Twist twist_;
   twist_.linear.x = lin_x;
   twist_.angular.z = rot_z;
@@ -54,9 +54,10 @@ static double angular_error_to_velocity(double error,
     derivative = (error - state.angular_error_prev) /
                  (time_curr - state.angular_time_prev);
   }
+
   state.angular_time_prev = time_curr;
   state.angular_error_prev = error;
-  return (Kp_angular * error) + (Kd_angular * derivative);
+  return (Kp_angular * error) + (Kd_angular * derivative) * 0.75;
 }
 
 static double linear_error_to_velocity(double error,
@@ -70,9 +71,10 @@ static double linear_error_to_velocity(double error,
     derivative = (error - state.linear_error_prev) /
                  (time_curr - state.linear_time_prev);
   }
+
   state.linear_time_prev = time_curr;
   state.linear_error_prev = error;
-  return (Kp_linear * error) + (Kd_linear * derivative);
+  return (Kp_linear * error) + (Kd_linear * derivative) * 0.75;
 }
 
 static double quaternion_to_yaw(geometry_msgs::msg::Quaternion pos) {
@@ -100,9 +102,9 @@ PIDActionServer::PIDActionServer(const rclcpp::NodeOptions &options)
   RCLCPP_INFO(this->get_logger(), "PID action server initialized");
 }
 
-rclcpp_action::GoalResponse PIDActionServer::handle_goal(
-    const rclcpp_action::GoalUUID &uuid,
-    std::shared_ptr<const PID::Goal> goal) {
+rclcpp_action::GoalResponse
+PIDActionServer::handle_goal(const rclcpp_action::GoalUUID &uuid,
+                             std::shared_ptr<const PID::Goal> goal) {
   RCLCPP_INFO(this->get_logger(), "Received goal request");
   (void)uuid;
   (void)goal;
@@ -197,8 +199,10 @@ void PIDActionServer::execute(
     current_theta = quaternion_to_yaw(current_pose.orientation);
     target_theta = atan2(target_y - current_y, target_x - current_x);
     theta_error = target_theta - current_theta;
-    if (theta_error > M_PI) theta_error -= 2 * M_PI;
-    if (theta_error < -M_PI) theta_error += 2 * M_PI;
+    if (theta_error > M_PI)
+      theta_error -= 2 * M_PI;
+    if (theta_error < -M_PI)
+      theta_error += 2 * M_PI;
 
     if (this->debug_lvl == 2) {
       std::stringstream debug_statement;
@@ -225,9 +229,7 @@ void PIDActionServer::execute(
 
     double distance_error =
         sqrt(pow(target_x - current_x, 2) + pow(target_y - current_y, 2));
-    if (fabs(theta_error) > ANGLE_TOLERANCE &&
-        fabs(fabs(theta_error) - M_PI) > ANGLE_TOLERANCE &&
-        distance_error > 1.5 * DISTANCE_TOLERANCE) {
+    if (fabs(theta_error) > ANGLE_TOLERANCE) {
       double angular_velocity =
           angular_error_to_velocity(theta_error, current_time, pid_state);
       geometry_msgs::msg::Twist robo_msg =
@@ -273,6 +275,6 @@ void PIDActionServer::execute(
   }
 }
 
-}  // namespace control_algorithms
+} // namespace control_algorithms
 
 RCLCPP_COMPONENTS_REGISTER_NODE(control_algorithms::PIDActionServer)
