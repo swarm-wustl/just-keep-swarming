@@ -55,7 +55,7 @@ def generate_launch_description():
                 executable="position_estimator",
                 name="position_estimator",
                 parameters=[
-                    {"N": LaunchConfiguration("N"), "q": 1.0, "r": 5.0}
+                    {"N": LaunchConfiguration("N"), "q": 20.0, "r": 10.0}
                 ],  # Require tuning
                 output="screen",
             ),
