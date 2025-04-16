@@ -74,7 +74,7 @@ static double angular_error_to_velocity(double error,
   angular_time_prev = time_curr;
   angular_error_prev = error;
 
-  return (Kp_angular * error) + (Kd_angular * derivative);
+  return (Kp_angular * error) + (Kd_angular * derivative) * 0.75;
 }
 
 static double linear_error_to_velocity(double error,
@@ -93,7 +93,7 @@ static double linear_error_to_velocity(double error,
   linear_time_prev = time_curr;
   linear_error_prev = error;
 
-  return (Kp_linear * error) + (Kd_linear * derivative);
+  return (Kp_linear * error) + (Kd_linear * derivative) * 0.75;
 }
 
 // NOTE: The robot is assumed to only rotate about the z-axis
@@ -337,9 +337,7 @@ void PIDActionServer::execute(
 
     // Turn robot to face target point
     // TODO(jaxon): we shouldnt have to check this
-    if (fabs(theta_error) > ANGLE_TOLERANCE &&
-        fabs(fabs(theta_error) - M_PI) > ANGLE_TOLERANCE &&
-        distance_error > 1.5 * DISTANCE_TOLERANCE) {
+    if (fabs(theta_error) > ANGLE_TOLERANCE) {
       double angular_velocity =
           angular_error_to_velocity(theta_error, current_time);
 
