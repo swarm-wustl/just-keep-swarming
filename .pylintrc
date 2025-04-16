@@ -65,3 +65,4 @@ max-attributes=10
 
 [FORMAT]
 max-locals=30
+max-line-length=200
