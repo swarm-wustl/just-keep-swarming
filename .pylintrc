@@ -60,7 +60,7 @@ ignore-docstrings=yes
 ignore-imports=yes
 
 [MESSAGES CONTROL]
-disable=missing-docstring,assigning-non-slot,unspecified-encoding,no-name-in-module,duplicate-code
+disable=missing-docstring,assigning-non-slot,unspecified-encoding,no-name-in-module,duplicate-code,fixme
 
 [DESIGN]
 max-attributes=10
