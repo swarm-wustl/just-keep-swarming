@@ -41,6 +41,7 @@ class RobotTracker(Node):
             qos_profile=10,
         )
 
+        self.draw_pairs = []
         self.tracked_points = []  # Historical positions
         self.current_contours_points = []  # Current frame's contour data
         self.get_logger().info("Tracking robots")
@@ -85,6 +86,21 @@ class RobotTracker(Node):
         # Historical tracked points
         for point in self.tracked_points:
             cv2.circle(map_image, point, radius=1, color=(0, 0, 255), thickness=2)
+
+        # Colored center and angle points
+        count = 0
+        for (center_xy, angle_xy) in enumerate(self.draw_pairs):
+            if count % 3 == 0:
+                cv2.circle(map_image, (int(center_xy[0]), int(center_xy[1])), radius = 1, color=(255, 0, 0), thickness = 1)
+                cv2.circle(map_image, (int(angle_xy[0]), int(angle_xy[1])), radius = 1, color=(255, 0, 0), thickness = 1) 
+            elif count % 3 == 1:
+                cv2.circle(map_image, (int(center_xy[0]), int(center_xy[1])), radius = 1, color=(0, 255, 0), thickness = 1)
+                cv2.circle(map_image, (int(angle_xy[0]), int(angle_xy[1])), radius = 1, color=(0, 255, 0), thickness = 1) 
+            else:
+                cv2.circle(map_image, (int(center_xy[0]), int(center_xy[1])), radius = 1, color=(0, 0, 255), thickness = 1)
+                cv2.circle(map_image, (int(angle_xy[0]), int(angle_xy[1])), radius = 1, color=(0, 0, 255), thickness = 1)
+
+            count += 1 
 
         # Current frame contours
         for contour in self.current_contours_points:
@@ -211,6 +227,10 @@ class RobotTracker(Node):
                     angle = calculate_angle(packet_point, angle_packet_point)
 
                     packet_points.append([packet_point[0][0],packet_point[0][1],angle])
+
+                    center_xy = packet_point[0]
+                    angle_xy = angle_packet_point[0]
+                    self.draw_pairs.append((center_xy, angle_xy))
 
 
                     if self.display:
