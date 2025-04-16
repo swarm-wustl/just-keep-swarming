@@ -191,7 +191,7 @@ void MultiRobotPathPlannerActionServer::execute(
   // std::shared_ptr<rclcpp::Node> node =
   // rclcpp::Node::make_shared("add_two_ints_client");
   rclcpp::Client<shared_types::srv::PositionList>::SharedPtr client =
-      this->create_client<shared_types::srv::PositionList>("position_list");
+      this->create_client<shared_types::srv::PositionList>("get_full_robo_pos");
 
   auto robo_pos_request =
       std::make_shared<shared_types::srv::PositionList::Request>();
