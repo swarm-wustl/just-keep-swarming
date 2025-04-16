@@ -1,7 +1,7 @@
 import math
 
 import rclpy
-from geometry_msgs.msg import Point, Pose, PoseArray, PoseStamped
+from geometry_msgs.msg import Point, Pose, PoseArray, PoseStamped, Twist
 
 from shared_types.srv import PositionList
 
@@ -67,7 +67,7 @@ class PositionEstimator(Node):
         self.robot_service = self.create_service(
             PositionList, "get_full_robo_pos", self.get_full_robo_pos
         )
-        
+
     # TODO(sebtheiler): does there need to be a timer to clear this or does the robot keep going?
     def create_control_callback(self, i: int):
         def callback(msg: Twist):
