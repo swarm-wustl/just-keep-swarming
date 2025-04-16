@@ -2,10 +2,8 @@ import math
 
 import rclpy
 from geometry_msgs.msg import Point, Pose, PoseArray, PoseStamped, Twist
-
-from shared_types.srv import PositionList
-
 from rclpy.node import Node
+from shared_types.srv import PositionList
 from std_msgs.msg import Header
 
 from overhead_cv.utils.multi_robot_estimator import MultiRobotStateEstimator
@@ -125,13 +123,13 @@ class PositionEstimator(Node):
 
     def get_full_robo_pos(self, _, response):
         response.robot_n = self.num_robots
-        robo_pos: Pose = PoseArray()
+        robo_pos = PoseArray()
 
         pose_list = [
             Pose(
                 position=Point(x=estimator.x.x, y=estimator.x.y),
                 orientation=quaternion_from_yaw(
-                    estimator.x.orientation
+                    math.atan2(estimator.x.sin_theta, estimator.x.cos_theta),
                 ),  # measured_pose.orientation,
             )
             for estimator in self.multi_robot_estimator.estimators
