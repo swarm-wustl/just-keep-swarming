@@ -32,6 +32,8 @@ setup(
             "camera_feed=overhead_cv.camera_feed:main",
             "robot_tracker=overhead_cv.robot_tracker:main",
             "position_estimator=overhead_cv.position_estimator:main",
+            "pid_as=overhead_cv.pid_as:main",
+            "pid_cli=overhead_cv.fib_cli:main",
         ],
     },
 )

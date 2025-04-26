@@ -17,7 +17,7 @@ ros2 run control_algorithms pid_control_action_server --ros-args -p is_sim:=fals
 
 
 >> Test client 
-ros2 run control_algorithms test_PID_AC --ros-args -p x_pos:=2.0 -p y_pos:=2.0 -p rob_id:=0 
+ros2 run control_algorithms test_PID_AC --ros-args -p x_pos:=0.5 -p y_pos:=0.5 -p rob_id:=0 
 
 
 >> Assembler Action Server:
@@ -98,4 +98,8 @@ Send a test:
 ros2 run control_algorithms demo_mrpp_action_client
 ```
 
+
+## multi-thread pid 
+
+ros2 run control_algorithm pid_control_action_server_mt
 
