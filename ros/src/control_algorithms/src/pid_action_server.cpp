@@ -3,8 +3,8 @@
 
 #include "rclcpp_components/register_node_macro.hpp"
 
-#define DISTANCE_TOLERANCE 0.10 // meters
-#define ANGLE_TOLERANCE 0.2     // rad
+#define DISTANCE_TOLERANCE 0.10  // meters
+#define ANGLE_TOLERANCE 0.2      // rad
 #define Kp_angular 0.8
 #define Kd_angular 0.0
 #define Kp_linear 0.5
@@ -20,8 +20,8 @@ struct PIDState {
   double linear_error_prev = 0.0;
 };
 
-static geometry_msgs::msg::TwistStamped
-create_twist(double lin_x, double rot_z, builtin_interfaces::msg::Time time_) {
+static geometry_msgs::msg::TwistStamped create_twist(
+    double lin_x, double rot_z, builtin_interfaces::msg::Time time_) {
   geometry_msgs::msg::Twist twist_;
   twist_.linear.x = lin_x;
   twist_.angular.z = rot_z;
@@ -45,36 +45,36 @@ create_twist(double lin_x, double rot_z, builtin_interfaces::msg::Time time_) {
 
 static double angular_error_to_velocity(double error,
                                         builtin_interfaces::msg::Time time,
-                                        PIDState &state) {
+                                        PIDState *state) {
   int time_curr = time.sec;
   double derivative;
-  if (state.angular_time_prev == -1 || time_curr == state.angular_time_prev) {
+  if (state->angular_time_prev == -1 || time_curr == state->angular_time_prev) {
     derivative = 0;
   } else {
-    derivative = (error - state.angular_error_prev) /
-                 (time_curr - state.angular_time_prev);
+    derivative = (error - state->angular_error_prev) /
+                 (time_curr - state->angular_time_prev);
   }
 
-  state.angular_time_prev = time_curr;
-  state.angular_error_prev = error;
+  state->angular_time_prev = time_curr;
+  state->angular_error_prev = error;
 
   return (Kp_angular * error) + (Kd_angular * derivative) * 0.75;
 }
 
 static double linear_error_to_velocity(double error,
                                        builtin_interfaces::msg::Time time,
-                                       PIDState &state) {
+                                       PIDState *state) {
   int time_curr = time.sec;
   double derivative;
-  if (state.linear_time_prev == -1 || time_curr == state.linear_time_prev) {
+  if (state->linear_time_prev == -1 || time_curr == state->linear_time_prev) {
     derivative = 0;
   } else {
-    derivative = (error - state.linear_error_prev) /
-                 (time_curr - state.linear_time_prev);
+    derivative = (error - state->linear_error_prev) /
+                 (time_curr - state->linear_time_prev);
   }
 
-  state.linear_time_prev = time_curr;
-  state.linear_error_prev = error;
+  state->linear_time_prev = time_curr;
+  state->linear_error_prev = error;
 
   return (Kp_linear * error) + (Kd_linear * derivative) * 0.75;
 }
@@ -104,9 +104,9 @@ PIDActionServer::PIDActionServer(const rclcpp::NodeOptions &options)
   RCLCPP_INFO(this->get_logger(), "PID action server initialized");
 }
 
-rclcpp_action::GoalResponse
-PIDActionServer::handle_goal(const rclcpp_action::GoalUUID &uuid,
-                             std::shared_ptr<const PID::Goal> goal) {
+rclcpp_action::GoalResponse PIDActionServer::handle_goal(
+    const rclcpp_action::GoalUUID &uuid,
+    std::shared_ptr<const PID::Goal> goal) {
   RCLCPP_INFO(this->get_logger(), "Received goal request");
   (void)uuid;
   (void)goal;
@@ -151,6 +151,10 @@ void PIDActionServer::execute(
       robo_pub_name.str(), 10);
   geometry_msgs::msg::Pose current_pose;
   bool _ready = false;
+  auto cb_group =
+      this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
+  rclcpp::SubscriptionOptions options;
+  options.callback_group = cb_group;
   auto subscriber_pos =
       this->create_subscription<geometry_msgs::msg::PoseStamped>(
           robo_sub_name.str(), 10,
@@ -161,7 +165,8 @@ void PIDActionServer::execute(
               _ready = true;
               RCLCPP_INFO(this->get_logger(), "PID is ready, starting!!");
             }
-          });
+          },
+          options);
 
   auto feedback = std::make_shared<PID::Feedback>();
   auto result = std::make_shared<PID::Result>();
@@ -201,10 +206,8 @@ void PIDActionServer::execute(
     current_theta = quaternion_to_yaw(current_pose.orientation);
     target_theta = atan2(target_y - current_y, target_x - current_x);
     theta_error = target_theta - current_theta;
-    if (theta_error > M_PI)
-      theta_error -= 2 * M_PI;
-    if (theta_error < -M_PI)
-      theta_error += 2 * M_PI;
+    if (theta_error > M_PI) theta_error -= 2 * M_PI;
+    if (theta_error < -M_PI) theta_error += 2 * M_PI;
 
     if (this->debug_lvl == 2) {
       std::stringstream debug_statement;
@@ -236,13 +239,14 @@ void PIDActionServer::execute(
     // TODO(jaxon): we shouldnt have to check this
     if (fabs(theta_error) > ANGLE_TOLERANCE) {
       double angular_velocity =
-          angular_error_to_velocity(theta_error, current_time, pid_state);
+          angular_error_to_velocity(theta_error, current_time, &pid_state);
       geometry_msgs::msg::Twist robo_msg =
           create_twist(0.0, angular_velocity, current_time).twist;
       robot_pub->publish(robo_msg);
       if (debug_state != 1 && this->debug_lvl >= 1) {
         std::stringstream debug_statement;
-        debug_statement << "spinning " << goal->robot_id;
+        debug_statement << "spinning " << goal->robot_id << " "
+                        << fabs(theta_error);
         RCLCPP_INFO(this->get_logger(), debug_statement.str().c_str());
         debug_state = 1;
       }
@@ -280,6 +284,6 @@ void PIDActionServer::execute(
   }
 }
 
-} // namespace control_algorithms
+}  // namespace control_algorithms
 
 RCLCPP_COMPONENTS_REGISTER_NODE(control_algorithms::PIDActionServer)
