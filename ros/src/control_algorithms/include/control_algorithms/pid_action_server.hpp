@@ -38,6 +38,23 @@ class PIDActionServer : public rclcpp::Node {
   rclcpp_action::Server<PID>::SharedPtr action_server_;
   bool is_sim;
   int debug_lvl;
+
+  std::mutex subscribers_mutex_;
+  std::vector<
+      std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PoseStamped>>>
+      active_subscribers_;
+
+  // Add this method to safely remove subscribers:
+  void remove_subscriber(
+      std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PoseStamped>>
+          sub) {
+    std::lock_guard<std::mutex> lock(subscribers_mutex_);
+    auto it =
+        std::find(active_subscribers_.begin(), active_subscribers_.end(), sub);
+    if (it != active_subscribers_.end()) {
+      active_subscribers_.erase(it);
+    }
+  }
 };
 
 }  // namespace control_algorithms
