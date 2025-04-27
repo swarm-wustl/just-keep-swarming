@@ -149,24 +149,36 @@ void PIDActionServer::execute(
 
   auto robot_pub = this->create_publisher<geometry_msgs::msg::Twist>(
       robo_pub_name.str(), 10);
-  geometry_msgs::msg::Pose current_pose;
-  bool _ready = false;
+
+  std::mutex _pose_mutex;
+  // geometry_msgs::msg::Pose current_pose;
+
+  auto current_pose = std::make_shared<geometry_msgs::msg::Pose>();
+  auto _ready = std::make_shared<std::atomic<bool>>(false);
+
+  // bool _ready = false;
   auto cb_group =
       this->create_callback_group(rclcpp::CallbackGroupType::MutuallyExclusive);
   rclcpp::SubscriptionOptions options;
   options.callback_group = cb_group;
-  auto subscriber_pos =
-      this->create_subscription<geometry_msgs::msg::PoseStamped>(
-          robo_sub_name.str(), 10,
-          [this, &current_pose,
-           &_ready](const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
-            current_pose = msg->pose;
-            if (!_ready) {
-              _ready = true;
-              RCLCPP_INFO(this->get_logger(), "PID is ready, starting!!");
-            }
-          },
-          options);
+
+  std::shared_ptr<rclcpp::Subscription<geometry_msgs::msg::PoseStamped>>
+      subscriber_pos;
+  {
+    std::lock_guard<std::mutex> lock(subscribers_mutex_);
+    subscriber_pos = this->create_subscription<geometry_msgs::msg::PoseStamped>(
+        robo_sub_name.str(), 10,
+        [this, current_pose,
+         _ready](const geometry_msgs::msg::PoseStamped::SharedPtr msg) {
+          *current_pose = msg->pose;
+          if (!_ready->load()) {
+            _ready->store(true);
+            RCLCPP_INFO(this->get_logger(), "PID is ready, starting!!");
+          }
+        },
+        options);
+    active_subscribers_.push_back(subscriber_pos);
+  }
 
   auto feedback = std::make_shared<PID::Feedback>();
   auto result = std::make_shared<PID::Result>();
@@ -201,9 +213,9 @@ void PIDActionServer::execute(
       continue;
     }
 
-    current_x = current_pose.position.x;
-    current_y = current_pose.position.y;
-    current_theta = quaternion_to_yaw(current_pose.orientation);
+    current_x = current_pose->position.x;
+    current_y = current_pose->position.y;
+    current_theta = quaternion_to_yaw(current_pose->orientation);
     target_theta = atan2(target_y - current_y, target_x - current_x);
     theta_error = target_theta - current_theta;
     if (theta_error > M_PI) theta_error -= 2 * M_PI;
@@ -276,7 +288,8 @@ void PIDActionServer::execute(
     robot_pub->publish(robo_msg);
     loop_rate.sleep();
   }
-
+  subscriber_pos.reset();
+  this->remove_subscriber(subscriber_pos);
   if (rclcpp::ok()) {
     result->error_code = result_code::SUCCEED;
     goal_handle->succeed(result);
