@@ -3,7 +3,7 @@ from glob import glob
 
 from setuptools import find_packages, setup
 
-package_name = "overhead_cv"
+package_name = "manual_control"
 
 setup(
     name=package_name,
@@ -11,27 +11,22 @@ setup(
     packages=find_packages(exclude=["test"]),
     data_files=[
         ("share/ament_index/resource_index/packages", ["resource/" + package_name]),
-        (
-            os.path.join("share", package_name, "config"),
-            glob(os.path.join("config", "*")),
-        ),
+        ("share/" + package_name, ["package.xml"]),
         (
             os.path.join("share", package_name, "launch"),
             glob(os.path.join("launch", "*launch.[pxy][yma]*")),
         ),
-        ("share/" + package_name, ["package.xml"]),
     ],
     install_requires=["setuptools"],
     zip_safe=True,
-    maintainer="observer",
-    maintainer_email="jaximus808@gmail.com",
+    maintainer="sebtheiler",
+    maintainer_email="25444757+sebtheiler@users.noreply.github.com",
     description="TODO: Package description",
-    license="Apache-2.0",
+    license="TODO: License declaration",
+    tests_require=["pytest"],
     entry_points={
         "console_scripts": [
-            "camera_feed=overhead_cv.camera_feed:main",
-            "robot_tracker=overhead_cv.robot_tracker:main",
-            "position_estimator=overhead_cv.position_estimator:main",
+            "joy_to_twist=manual_control.joy_to_twist:main",
         ],
     },
 )
