@@ -100,4 +100,4 @@ vector<vector<Cell>> pplan(const vector<Cell> &start, const vector<Cell> &goal,
   return map_occ;
 }
 
-}  // namespace control_algorithms
+} // namespace control_algorithms
