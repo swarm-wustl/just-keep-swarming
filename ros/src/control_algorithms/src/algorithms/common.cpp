@@ -75,7 +75,7 @@ void print_multi_map(const Map &map, const vector<Cell> &state) {
     for (size_t j = 0; j < map[i].size(); j++) {
       auto it = find(state.cbegin(), state.cend(), Cell{i, j});
       if (it != state.cend()) {
-        std::cout << std::distance(state.cbegin(), it) % 10;  // robot number
+        std::cout << std::distance(state.cbegin(), it) % 10; // robot number
       } else if (map[i][j]) {
         std::cout << "#";
       } else {
@@ -89,14 +89,25 @@ void print_multi_map(const Map &map, const vector<Cell> &state) {
 
 bool invalid_start(const Map &map, const Cell &goal, const Cell &start) {
   size_t rows = map.size();
-  if (rows == 0) return true;
+  if (rows == 0)
+    return true;
   size_t cols = map[0].size();
-  if (cols == 0                                        // map size 0
-      || goal.x >= rows || goal.y >= cols              // goal out of bounds
-      || start.x >= rows || start.y >= cols            // start out of bounds
-      || map[goal.x][goal.y] || map[start.x][start.y]  // goal or start occupied
-      || start == goal                                 // start is goal
+  std::cout << rows << std::endl;
+  std::cout << cols << std::endl;
+  if (cols == 0                                       // map size 0
+      || goal.x >= rows || goal.y >= cols             // goal out of bounds
+      || start.x >= rows || start.y >= cols           // start out of bounds
+      || map[goal.x][goal.y] || map[start.x][start.y] // goal or start occupied
+      || start == goal                                // start is goal
   ) {
+    /*std::cout << "a" << (cols == 0); // map size 0*/
+    /*std::cout << "b" << (goal.x >= rows);*/
+    /*std::cout << "bb" << (goal.y >= cols); // goal out of bounds*/
+    /*std::cout << "c" << (start.x >= rows);*/
+    /*std::cout << "cc" << (start.y >= cols); // start out of bounds*/
+    /*std::cout << "d" << (map[goal.x][goal.y]);*/
+    /*std::cout << "dd" << (map[start.x][start.y]); // goal or start occupied*/
+    /*std::cout << "e" << (start == goal);          // start is goal*/
     return true;
   }
 
@@ -112,6 +123,8 @@ bool invalid_multi_start(const Map &map, const vector<Cell> &start,
     for (size_t i = 0; i < start.size(); i++) {
       if (invalid_start(map, goal[i], start[i])) {
         invalid = true;
+        std::cout << "Invalid at " << goal[i].x << ", " << goal[i].y << " or "
+                  << start[i].x << ", " << start[i].y << std::endl;
         break;
       }
     }
@@ -120,4 +133,4 @@ bool invalid_multi_start(const Map &map, const vector<Cell> &start,
   return invalid;
 }
 
-}  // namespace control_algorithms
+} // namespace control_algorithms

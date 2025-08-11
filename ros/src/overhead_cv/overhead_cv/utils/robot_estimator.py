@@ -1,5 +1,5 @@
-import time
 import math
+import time
 
 import numpy as np
 
@@ -26,14 +26,16 @@ class RobotStateEstimator:
         # Reset
         if not self.num_estimates_received or self.reset_counter > 20:
             self.x = State(z.x, z.y, 0, np.cos(z.theta), np.sin(z.theta), 0)
+
         # Discard unreliable measurements
         if (
-            math.hypot(self.x.x - z.x, self.x.y - z.y) > self.dist_threshold
-            or abs(
-                normalize_angle(math.atan2(self.x.sin_theta, self.x.cos_theta))
-                - normalize_angle(z.theta)
-            )
-            > self.ang_threshold
+            math.hypot(self.x.x - z.x, self.x.y - z.y)
+            > self.dist_threshold
+            # or abs(
+            #     normalize_angle(math.atan2(self.x.sin_theta, self.x.cos_theta))
+            #     - normalize_angle(z.theta)
+            # )
+            # > self.ang_threshold
         ) and self.num_estimates_received > 50:
             self.reset_counter += 1
             return self.x, self.P
@@ -43,6 +45,9 @@ class RobotStateEstimator:
         x, P = extended_kalman_filter(
             self.x.to_np(), u.to_np(), z.to_np(), self.P, dt, self.q, self.r
         )
+
+        print("nan x?", np.isnan(x).any())
+        x = np.nan_to_num(x, nan=0.0)
 
         x[3] = low_pass_filter(x[3], self.x.sin_theta, alpha=0.8)
         x[4] = low_pass_filter(x[4], self.x.cos_theta, alpha=0.8)

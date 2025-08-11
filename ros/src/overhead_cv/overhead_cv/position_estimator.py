@@ -123,19 +123,22 @@ class PositionEstimator(Node):
 
     def get_full_robo_pos(self, _, response):
         response.robot_n = self.num_robots
-        robo_pos = PoseArray()
+        robo_pos = PositionList.Response()
 
         pose_list = [
             Pose(
                 position=Point(x=estimator.x.x, y=estimator.x.y),
                 orientation=quaternion_from_yaw(
                     math.atan2(estimator.x.sin_theta, estimator.x.cos_theta),
-                ),  # measured_pose.orientation,
+                ),
             )
             for estimator in self.multi_robot_estimator.estimators
         ]
 
-        robo_pos.poses = pose_list
+        pose_arr = PoseArray()
+        pose_arr.poses = pose_list
+        robo_pos.poses = pose_arr
+
         return robo_pos
 
 

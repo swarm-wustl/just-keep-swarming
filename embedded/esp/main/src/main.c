@@ -14,10 +14,10 @@
 #include <rmw_microros/rmw_microros.h>
 #endif
 
-#include "command_parser.h"      // NOLINT(build/include_subdir)
-#include "differential_drive.h"  // NOLINT(build/include_subdir)
-#include "motor_driver.h"        // NOLINT(build/include_subdir)
-#include "util.h"                // NOLINT(build/include_subdir)
+#include "command_parser.h"     // NOLINT(build/include_subdir)
+#include "differential_drive.h" // NOLINT(build/include_subdir)
+#include "motor_driver.h"       // NOLINT(build/include_subdir)
+#include "util.h"               // NOLINT(build/include_subdir)
 
 // TODO(Preston): refactor this to not use any of the malloc bs, just use a
 // simple header file API
@@ -26,13 +26,13 @@ static command_parser_t parser;
 static motor_driver_t motor_driver;
 
 void app_main(void) {
-#if defined(CONFIG_MICRO_ROS_ESP_NETIF_WLAN) || \
+#if defined(CONFIG_MICRO_ROS_ESP_NETIF_WLAN) ||                                \
     defined(CONFIG_MICRO_ROS_ESP_NETIF_ENET)
   ESP_ERROR_CHECK(uros_network_interface_initialize());
 #endif
 
   parser.node_name = "diffdrive_node";
-  parser.topic_name = "diffdrive_twist_1";
+  parser.topic_name = "diffdrive_twist_0";
   parser.message_type = ROSIDL_GET_MSG_TYPE_SUPPORT(geometry_msgs, msg, Twist);
   parser.handler = (command_parser_handler_t)twist_to_differential_drive;
 

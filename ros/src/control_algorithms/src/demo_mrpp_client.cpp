@@ -44,7 +44,9 @@ void MRPPActionClient::send_goal() {
   /*}*/
 
   vector<Cell> goals = {
-      {9, 0}, {9, 1}, {9, 2}, {9, 3}, {9, 4}, {9, 5},
+      /*{9, 0}, {9, 1}, {9, 2}, {9, 3}, {9, 4}, {9, 5},*/
+      {0, 0},
+      {0, 1},
   };
 
   auto goal_msg = MultiRobotPathPlan::Goal();
@@ -105,23 +107,23 @@ void MRPPActionClient::feedback_callback(
 void MRPPActionClient::result_callback(
     const GoalHandleMultiRobotPathPlan::WrappedResult &result) {
   switch (result.code) {
-    case rclcpp_action::ResultCode::SUCCEEDED:
-      break;
-    case rclcpp_action::ResultCode::ABORTED:
-      RCLCPP_ERROR(this->get_logger(), "Goal aborted");
-      return;
-    case rclcpp_action::ResultCode::CANCELED:
-      RCLCPP_ERROR(this->get_logger(), "Goal canceled");
-      return;
-    default:
-      RCLCPP_ERROR(this->get_logger(), "Unknown result code");
-      return;
+  case rclcpp_action::ResultCode::SUCCEEDED:
+    break;
+  case rclcpp_action::ResultCode::ABORTED:
+    RCLCPP_ERROR(this->get_logger(), "Goal aborted");
+    return;
+  case rclcpp_action::ResultCode::CANCELED:
+    RCLCPP_ERROR(this->get_logger(), "Goal canceled");
+    return;
+  default:
+    RCLCPP_ERROR(this->get_logger(), "Unknown result code");
+    return;
   }
 
   RCLCPP_INFO(this->get_logger(), "Printing result");
   rclcpp::shutdown();
 }
 
-}  // namespace control_algorithms
+} // namespace control_algorithms
 
 RCLCPP_COMPONENTS_REGISTER_NODE(control_algorithms::MRPPActionClient)

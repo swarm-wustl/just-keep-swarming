@@ -10,23 +10,56 @@
 #include "rclcpp_action/rclcpp_action.hpp"
 #include "rclcpp_components/register_node_macro.hpp"
 #include "shared_types/msg/robot_position.hpp"
+#include <stdexcept>
 
 namespace control_algorithms {
 
-Cell pose_to_cell(geometry_msgs::msg::Pose pose,
-                  nav_msgs::msg::OccupancyGrid const &og_map) {
-  float x = pose.position.x;
-  float y = pose.position.y;
+Cell pose_to_cell(const geometry_msgs::msg::Pose &pose,
+                  const nav_msgs::msg::OccupancyGrid &og_map) {
+  if (og_map.info.resolution <= 0) {
+    throw std::invalid_argument("Map resolution must be positive");
+  }
 
-  int cell_x =
-      static_cast<int>(((x + static_cast<float>((og_map.info.width / 2.0)) /
-                                 og_map.info.resolution)));
-  int cell_y =
-      static_cast<int>(((y + static_cast<float>((og_map.info.height / 2.0)) /
-                                 og_map.info.resolution)));
+  // Transform pose to map's coordinate frame
+  float x = pose.position.x - og_map.info.origin.position.x;
+  float y = pose.position.y - og_map.info.origin.position.y;
+
+  std::cout << "x" << x << std::endl;
+  std::cout << "y" << y << std::endl;
+  std::cout << "res" << og_map.info.resolution << std::endl;
+
+  // Convert to cell indices
+  int cell_x = static_cast<int>(std::floor(x / og_map.info.resolution)) +
+               og_map.info.width / 2;
+  int cell_y = static_cast<int>(std::floor(y / og_map.info.resolution)) +
+               og_map.info.height / 2;
+
+  // Check if the cell is within map bounds
+  if (cell_x < 0 || cell_y < 0 ||
+      cell_x >= static_cast<int>(og_map.info.width) ||
+      cell_y >= static_cast<int>(og_map.info.height)) {
+    std::cout << "cx" << cell_x << std::endl;
+    std::cout << "cy" << cell_y << std::endl;
+    throw std::out_of_range("Pose is outside the map bounds");
+  }
 
   return {static_cast<size_t>(cell_x), static_cast<size_t>(cell_y)};
 }
+/*Cell pose_to_cell(geometry_msgs::msg::Pose pose,*/
+/*                  nav_msgs::msg::OccupancyGrid const &og_map) {*/
+/*  float x = pose.position.x;*/
+/*  float y = pose.position.y;*/
+/**/
+/*  int cell_x =*/
+/*      static_cast<int>(((x + static_cast<float>((og_map.info.width / 2.0)) /*/
+/*                                 og_map.info.resolution)));*/
+/*  int cell_y =*/
+/*      static_cast<int>(((y + static_cast<float>((og_map.info.height / 2.0))
+ * /*/
+/*                                 og_map.info.resolution)));*/
+/**/
+/*  return {static_cast<size_t>(cell_x), static_cast<size_t>(cell_y)};*/
+/*}*/
 
 Map create_map(nav_msgs::msg::OccupancyGrid const &og_map) {
   Map map = {};
@@ -77,9 +110,9 @@ MultiRobotPathPlannerActionServer::MultiRobotPathPlannerActionServer(
   using std::placeholders::_1, std::placeholders::_2;
 
   // generating default map
-  this->declare_parameter<int>("width", 300);
-  this->declare_parameter<int>("height", 300);
-  this->declare_parameter<double>("res", 0.5);
+  this->declare_parameter<int>("width", 1000);
+  this->declare_parameter<int>("height", 1000);
+  this->declare_parameter<double>("res", 0.05);
 
   // Get parameters
   int map_width = this->get_parameter("width").as_int();
@@ -190,48 +223,115 @@ void MultiRobotPathPlannerActionServer::execute(
 
   // std::shared_ptr<rclcpp::Node> node =
   // rclcpp::Node::make_shared("add_two_ints_client");
+  //
+
   rclcpp::Client<shared_types::srv::PositionList>::SharedPtr client =
       this->create_client<shared_types::srv::PositionList>("get_full_robo_pos");
 
-  auto robo_pos_request =
-      std::make_shared<shared_types::srv::PositionList::Request>();
-
-  while (!client->wait_for_service(std::chrono::seconds(1))) {
-    if (!rclcpp::ok()) {
-      RCLCPP_ERROR(this->get_logger(),
-                   "Interrupted while waiting for the service. Exiting.");
-      result->error_code = FAILED_TO_PLAN;
-      result->error_msg = "FAILED";
-      goal_handle->canceled(result);
-      RCLCPP_INFO(this->get_logger(), "Planning failed to get robot pos");
-      return;
-    }
-    RCLCPP_INFO(this->get_logger(), "service not available, waiting again...");
-  }
-
-  auto robot_pos_result = client->async_send_request(robo_pos_request);
-
-  if (rclcpp::spin_until_future_complete(this->get_node_base_interface(),
-                                         robot_pos_result) !=
-      rclcpp::FutureReturnCode::SUCCESS) {
-    RCLCPP_INFO(this->get_logger(),
-                "Failed service request to get robot positions");
-    result->error_code = FAILED_TO_PLAN;
-    result->error_msg = "FAILED";
-    goal_handle->canceled(result);
+  if (!client->wait_for_service(std::chrono::seconds(2))) {
+    RCLCPP_ERROR(this->get_logger(),
+                 "Service 'get_full_robo_pos' not available.");
+    result->error_code = FAILED_TO_PLAN; // Use appropriate error codes
+    result->error_msg = "Service not available";
+    goal_handle->abort(result); // Abort the goal
     return;
   }
 
-  this->robot_poses.set__poses(robot_pos_result.get()->poses.poses);
+  RCLCPP_INFO(this->get_logger(), "Making request");
+  auto robo_pos_request =
+      std::make_shared<shared_types::srv::PositionList::Request>();
+  auto robot_pos_result_future = client->async_send_request(robo_pos_request);
 
-  for (const geometry_msgs::msg::Pose robot_pose : this->robot_poses.poses) {
-    robots.push_back(pose_to_cell(robot_pose, used_map));
+  RCLCPP_INFO(this->get_logger(), "Waiting for service response...");
+
+  // *** CHANGE HERE: Wait directly on the future ***
+  // The MultiThreadedExecutor in main will handle the underlying processing
+  // needed for the future to complete.
+  std::future_status status = robot_pos_result_future.wait_for(
+      std::chrono::seconds(5)); // Wait for 5 seconds
+
+  if (status != std::future_status::ready) {
+    RCLCPP_ERROR(this->get_logger(),
+                 "Service call to 'get_full_robo_pos' timed out or failed.");
+    result->error_code = FAILED_TO_PLAN;
+    result->error_msg = "FAILED_SERVICE_CALL_TIMEOUT_OR_ERROR";
+    goal_handle->abort(result);
+    return;
   }
-  // Fake starting positions in place of state estimation
-  // vector<Cell> robots = {
-  //     {0, 0}, {0, 1}, {0, 2}, {0, 3}, {0, 4}, {0, 5},
-  //     /*{5, 0}, {4, 0}, {3, 0}, {2, 0}, {1, 0},*/
-  // };
+
+  RCLCPP_INFO(this->get_logger(), "Received service response");
+
+  // Get the result (this might throw if the service call itself failed
+  // internally)
+  try {
+    auto response = robot_pos_result_future.get();
+
+    // Optional: Check the response content if the service definition includes
+    // success/failure flags if (!response->success /* or similar check based on
+    // your srv definition */) {
+    //   RCLCPP_ERROR(this->get_logger(), "Robot position service call indicated
+    //   failure."); result->error_code = FAILED_TO_PLAN; result->error_msg =
+    //   "FAILED_SERVICE_CALL_LOGIC"; goal_handle->abort(result); return;
+    // }
+
+    this->robot_poses.set__poses(response->poses.poses);
+    for (const geometry_msgs::msg::Pose robot_pose : this->robot_poses.poses) {
+      std::cout << "x" << robot_pose.position.x << std::endl;
+      std::cout << "y" << robot_pose.position.y << std::endl;
+      auto cell = pose_to_cell(robot_pose, used_map);
+      std::cout << "cx" << cell.x << std::endl;
+      std::cout << "cy" << cell.y << std::endl;
+      robots.push_back(pose_to_cell(robot_pose, used_map));
+    }
+    RCLCPP_INFO(this->get_logger(), "Updated poses");
+
+  } catch (const std::exception &e) {
+    RCLCPP_ERROR(this->get_logger(),
+                 "Exception while getting service result: %s", e.what());
+    result->error_code = FAILED_TO_PLAN;
+    result->error_msg = "FAILED_SERVICE_CALL_EXCEPTION";
+    goal_handle->abort(result);
+    return;
+  }
+
+  /*rclcpp::Client<shared_types::srv::PositionList>::SharedPtr client =*/
+  /*    this->create_client<shared_types::srv::PositionList>("get_full_robo_pos");*/
+  /**/
+  /*// Add checks for service availability*/
+  /*if (!client->wait_for_service(std::chrono::seconds(2))) { // Add timeout*/
+  /*  RCLCPP_ERROR(this->get_logger(),*/
+  /*               "Service 'get_full_robo_pos' not available.");*/
+  /*  // ... handle failure (abort goal) ...*/
+  /*  return;*/
+  /*}*/
+  /**/
+  /*RCLCPP_INFO(this->get_logger(), "Making request");*/
+  /*auto robo_pos_request =*/
+  /*    std::make_shared<shared_types::srv::PositionList::Request>();*/
+  /*auto robot_pos_result_future =
+   * client->async_send_request(robo_pos_request);*/
+  /**/
+  /*// Wait for the result using the future's wait_for or get method*/
+  /*// The MultiThreadedExecutor in main will process the response*/
+  /*RCLCPP_INFO(this->get_logger(), "Waiting");*/
+  /*auto spin_status = rclcpp::spin_until_future_complete(*/
+  /*    this->get_node_base_interface(), robot_pos_result_future,*/
+  /*    std::chrono::seconds(5)); // Add a timeout*/
+  /**/
+  /*RCLCPP_INFO(this->get_logger(), "Received");*/
+  /*if (spin_status != rclcpp::FutureReturnCode::SUCCESS) {*/
+  /*  RCLCPP_ERROR(this->get_logger(),*/
+  /*               "Failed to get robot positions service call (Spin Status:
+   * %d)",*/
+  /*               static_cast<int>(spin_status));*/
+  /*  result->error_code = FAILED_TO_PLAN;*/
+  /*  result->error_msg = "FAILED_SERVICE_CALL";*/
+  /*  goal_handle->abort(result); // Use abort for internal errors*/
+  /*  return;*/
+  /*}*/
+  /**/
+  /*// Check the result status from the service itself if applicable*/
+  /*auto response = robot_pos_result_future.get();*/
 
   vector<Cell> goals;
   for (const auto &goal_cell : goal->goal_cells) {
@@ -263,7 +363,7 @@ void MultiRobotPathPlannerActionServer::execute(
 
   // bool changed = obstacle_inflate(&map, 1);
   obstacle_inflate(&map, 1);
-  print_multi_map(map, robots);
+  /*print_multi_map(map, robots);*/
 
   auto start_time = this->now();
 
@@ -343,8 +443,8 @@ void MultiRobotPathPlannerActionServer::execute(
           rclcpp_action::create_client<control_algorithms::action::PID>(this,
                                                                         "pid");
 
-      // this is of type std::shared_future<PIDGoalHandle::SharedPtr>, auto used
-      // cuz implied lol
+      // this is of type std::shared_future<PIDGoalHandle::SharedPtr>, auto
+      // used cuz implied lol
       auto future_goal =
           client_ptr_->async_send_goal(goal_msg, send_goal_options);
 
@@ -353,11 +453,11 @@ void MultiRobotPathPlannerActionServer::execute(
     }
 
     // GOOD LUCK LOL
-    rclcpp::Rate rate(10);  // 10 Hz loop
+    rclcpp::Rate rate(10); // 10 Hz loop
     while (!future_queue_.empty()) {
       future_queue_.erase(
-          // erease the future from the queue if its ready, meaning its finished
-          // as progress -> ready when done
+          // erease the future from the queue if its ready, meaning its
+          // finished as progress -> ready when done
           std::remove_if(
               future_queue_.begin(), future_queue_.end(),
 
@@ -373,9 +473,9 @@ void MultiRobotPathPlannerActionServer::execute(
           future_queue_.end());
 
       // idk wtf this is doing
-      if (rclcpp::ok()) {
-        rclcpp::spin_some(this->get_node_base_interface());
-      }
+      /*if (rclcpp::ok()) {*/
+      /*  rclcpp::spin_some(this->get_node_base_interface());*/
+      /*}*/
       rate.sleep();
     }
 
@@ -411,7 +511,7 @@ void MultiRobotPathPlannerActionServer::update_poses(
   // going to have this send the pose here
 }
 
-}  // namespace control_algorithms
+} // namespace control_algorithms
 
 RCLCPP_COMPONENTS_REGISTER_NODE(
     control_algorithms::MultiRobotPathPlannerActionServer)

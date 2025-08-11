@@ -22,8 +22,18 @@ def hungarian(
             # Only get (x, y) values from the state and measurement
             x = current_states[i].to_np()[:2]
             z = new_measurements[j].to_np()[:2]
+
+            if np.isnan(z).any():
+                continue
+
             J[i, j] = np.sum((x - z) ** 2)
 
-    _, col_ind = linear_sum_assignment(J)
+    # J = np.nan_to_num(J, nan=0)  # TODO(sebtheiler): this is really bad
+
+    try:
+        _, col_ind = linear_sum_assignment(J)
+    except ValueError as e:
+        print(J)
+        raise e
 
     return col_ind
