@@ -16,11 +16,19 @@
           name = "Swarm";
           packages = with pkgs; [
             colcon
-            # ... other non-ROS packages
+            # ... other non-ROS packages can go here
+
             (with rosPackages.humble; buildEnv {
               paths = [
+                ament-cmake
+                ament-cmake-core
+                ament-cmake-python
+                python-cmake-module
                 ros-core
-                # ... other ROS packages
+                rclcpp
+                rclpy
+                rviz2
+                # ... other ROS packages can go here
               ];
             })
           ];
