@@ -11,14 +11,19 @@
           inherit system;
           overlays = [ nix-ros-overlay.overlays.default ];
         };
+        pyPkgs = pkgs.python312Packages;
+        rosDistro = "humble";
       in {
         devShells.default = pkgs.mkShell {
           name = "Swarm";
           packages = with pkgs; [
             colcon
-            # ... other non-ROS packages can go here
+            opencv
+            pyPkgs.scipy
+            pyPkgs.numpy
+            pyPkgs.opencv4
 
-            (with rosPackages.humble; buildEnv {
+            (with rosPackages.${rosDistro}; buildEnv {
               paths = [
                 ament-cmake
                 ament-cmake-core
@@ -28,7 +33,7 @@
                 rclcpp
                 rclpy
                 rviz2
-                # ... other ROS packages can go here
+                cv-bridge
               ];
             })
           ];
