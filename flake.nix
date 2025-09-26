@@ -20,7 +20,10 @@
           debugpy
         ]);
 
-        ignGazebo = pkgs.callPackage ./ign-gazebo.nix { };
+        gzCmake = pkgs.callPackage ./gz-cmake.nix { };
+        ignGazebo = pkgs.callPackage ./ign-gazebo.nix {
+          gz-cmake = gzCmake;
+        };
       in {
         devShells.default = pkgs.mkShell {
           name = "Swarm";

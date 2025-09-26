@@ -1,4 +1,4 @@
-{ lib, stdenv, fetchFromGitHub, cmake, ogre, bullet, eigen, pkgconfig }:
+{ lib, stdenv, fetchFromGitHub, cmake, ogre, bullet, eigen, gz-cmake }:
 
 stdenv.mkDerivation rec {
   pname = "ign-gazebo";
@@ -8,10 +8,10 @@ stdenv.mkDerivation rec {
     owner = "gazebosim";
     repo = "gz-sim";
     rev = "gz-sim9_9.4.0";
-    sha256 = "";
+    sha256 = "sha256-Em+sQ/wygnLX/gjDqVrPpkh0kZmne4Z4WElz/nBRawI=";
   };
 
-  nativeBuildInputs = [ cmake pkgconfig ];
+  nativeBuildInputs = [ cmake ];
 
   buildInputs = [
     ogre
@@ -22,6 +22,7 @@ stdenv.mkDerivation rec {
   cmakeFlags = [
     "-DBUILD_GUI=ON"
     "-DBUILD_TESTING=OFF"
+    "-DCMAKE_PREFIX_PATH=${gz-cmake}"
     # "-DCMAKE_INSTALL_PREFIX=/nix/store/...-ign-gazebo-${version}" # often default is fine
   ];
 
