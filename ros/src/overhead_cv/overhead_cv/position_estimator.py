@@ -1,11 +1,15 @@
+import math
+
 import rclpy
-from geometry_msgs.msg import Point, Pose, PoseArray, PoseStamped, Quaternion
+from geometry_msgs.msg import Point, Pose, PoseArray, PoseStamped, Twist
 from rclpy.node import Node
+from shared_types.srv import PositionList
 from std_msgs.msg import Header
 
 from overhead_cv.utils.multi_robot_estimator import MultiRobotStateEstimator
+from overhead_cv.utils.quat_to_yaw import quaternion_from_yaw
 
-from .utils.filtering_types import Measurement
+from .utils.filtering_types import Command, Measurement
 
 
 class PositionEstimator(Node):
@@ -32,6 +36,18 @@ class PositionEstimator(Node):
             PoseArray, "robot_observations", self.estimate_poses, 10
         )
 
+        # Control input
+        self.twist_subs = []
+        for i in range(self.num_robots):
+            sub = self.create_subscription(
+                Twist, f"diffdrive_twist_{i}", self.create_control_callback(i), 10
+            )
+            self.twist_subs.append(sub)
+
+        self.control_input = [
+            Command(lin_vel=0, ang_vel=0) for _ in range(self.num_robots)
+        ]
+
         # `num_robots` publishers
         self._publishers = [
             self.create_publisher(PoseStamped, f"robot{i}/pose", 10)
@@ -46,6 +62,16 @@ class PositionEstimator(Node):
         self.calibration_timer = self.create_timer(
             calibration_time or 3, self.stop_calibrating
         )
+        self.robot_service = self.create_service(
+            PositionList, "get_full_robo_pos", self.get_full_robo_pos
+        )
+
+    # TODO(sebtheiler): does there need to be a timer to clear this or does the robot keep going?
+    def create_control_callback(self, i: int):
+        def callback(msg: Twist):
+            self.control_input[i] = Command(lin_vel=msg.linear.x, ang_vel=msg.angular.z)
+
+        return callback
 
     def stop_calibrating(self):
         """Finish calibrating and assign IDs to robots"""
@@ -60,31 +86,57 @@ class PositionEstimator(Node):
         """Update pose estimates after receiving new measurements"""
 
         measured_poses_list = [
-            Measurement(pose.position.x, pose.position.y) for pose in measured_poses.poses
+            Measurement(
+                pose.position.x,
+                pose.position.y,
+                2 * math.acos(pose.orientation.w),
+            )
+            for pose in measured_poses.poses
         ]
-        actions = {}  # TODO(sebtheiler): get the actions from PID control
 
         cur_time = self.get_clock().now()
-        dt = (cur_time - self.prev_time).nanoseconds / 1000000000
+        dt = (cur_time - self.prev_time).nanoseconds / 1e9
         self.prev_time = cur_time
 
-        self.multi_robot_estimator.update_estimate(actions, measured_poses_list, dt)
-        self.publish_filtered_poses(measured_poses)
+        self.multi_robot_estimator.update_estimate(
+            self.control_input, measured_poses_list, dt
+        )
+        self.publish_filtered_poses()
 
-    def publish_filtered_poses(self, measured_poses: PoseArray):
+    def publish_filtered_poses(self):
         """Publish the estimated robot positions"""
         assert self.num_robots == len(self.multi_robot_estimator.estimators)
 
-        for i, (estimator, measured_pose) in enumerate(zip(self.multi_robot_estimator.estimators, measured_poses.poses)):            
+        for i, estimator in enumerate(self.multi_robot_estimator.estimators):
+            theta = math.atan2(estimator.x.sin_theta, estimator.x.cos_theta)
+            q = quaternion_from_yaw(theta)
+
             pose = PoseStamped(
                 header=Header(frame_id="odom", stamp=self.get_clock().now().to_msg()),
                 pose=Pose(
                     position=Point(x=estimator.x.x, y=estimator.x.y),
-                    orientation=measured_pose.orientation
+                    orientation=q,
                 ),
             )
 
             self._publishers[i].publish(pose)
+
+    def get_full_robo_pos(self, _, response):
+        response.robot_n = self.num_robots
+        robo_pos = PoseArray()
+
+        pose_list = [
+            Pose(
+                position=Point(x=estimator.x.x, y=estimator.x.y),
+                orientation=quaternion_from_yaw(
+                    math.atan2(estimator.x.sin_theta, estimator.x.cos_theta),
+                ),  # measured_pose.orientation,
+            )
+            for estimator in self.multi_robot_estimator.estimators
+        ]
+
+        robo_pos.poses = pose_list
+        return robo_pos
 
 
 def main(args=None):

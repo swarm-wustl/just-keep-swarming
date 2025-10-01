@@ -124,6 +124,17 @@ install(
   LIBRARY DESTINATION lib
   RUNTIME DESTINATION BIN)
 
+add_executable(multi_main src/pid_entry.cpp)
+target_include_directories(
+  multi_main PRIVATE $<BUILD_INTERFACE:${CMAKE_CURRENT_SOURCE_DIR}/include>
+                     $<INSTALL_INTERFACE:include>)
+ament_target_dependencies(multi_main rclcpp rclcpp_action rclcpp_components)
+target_link_libraries(multi_main pid_action_server)
+
+install(TARGETS multi_main RUNTIME DESTINATION lib/${PROJECT_NAME})
+# target_link_libraries(pid_control_action_server_mt pid_action_server)
+# install(TARGETS pid_control_action_server_mt DESTINATION lib/${PROJECT_NAME})
+
 # === TESTING CLIENTS ===
 add_library(test_PID SHARED src/test/test_PID.cpp)
 target_include_directories(
