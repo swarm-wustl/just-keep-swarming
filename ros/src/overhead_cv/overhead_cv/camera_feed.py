@@ -27,6 +27,7 @@ class CameraFeed(Node):
             "cam_input": 0,
             "shape": [0, 0],
             "dimension": [0.0, 0.0],
+            "debug": False,
         }
 
         for param, default in default_values.items():
@@ -91,7 +92,8 @@ class CameraFeed(Node):
 
         update_data = Float32MultiArray()
         update_data.data = self.parameters["shape"]
-        print(update_data.data)
+        if self.parameters["debug"]:
+            print(update_data.data)
         self.shape_publisher.publish(update_data)
 
     # Gets the camera feed and publishes it to /video topic
@@ -99,11 +101,11 @@ class CameraFeed(Node):
         try:
             ret, frame = self.cap.read()
             if not ret:
+                self.get_logger().warning("Failed to read frame from camera!")
                 return
-
+            
             # If something updates
             self.update_size(width=float(frame.shape[1]), height=float(frame.shape[0]))
-
             self.video_publisher.publish(self.bridge.cv2_to_imgmsg(frame, "bgr8"))
 
         except CvBridgeError as error:

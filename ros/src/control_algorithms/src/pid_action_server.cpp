@@ -198,10 +198,10 @@ void PIDActionServer::execute(
   RCLCPP_INFO(this->get_logger(), init_debug_msg.str().c_str());
 
   if (this->is_sim) {
-    robo_pub_name << "/model/robot_" << std::to_string(goal->robot_id)
+    robo_pub_name << "/model/robot" << std::to_string(goal->robot_id)
                   << "/cmd_vel";
 
-    robo_sub_name << "/model/robot_" << std::to_string(goal->robot_id)
+    robo_sub_name << "/model/robot" << std::to_string(goal->robot_id)
                   << "/pose";
   } else {
     robo_pub_name << "/diffdrive_twist_" << std::to_string(goal->robot_id);
@@ -212,9 +212,13 @@ void PIDActionServer::execute(
   RCLCPP_INFO(this->get_logger(), robo_pub_name.str().c_str());
   RCLCPP_INFO(this->get_logger(), robo_sub_name.str().c_str());
 
-  this->robot_pub_ =
-      this->create_publisher<geometry_msgs::msg::Twist>(robo_pub_name.str(),
-                                                        10);  // sus shit
+if (this->is_sim) {
+  this->robot_pub_stamped_ = this->create_publisher<geometry_msgs::msg::TwistStamped>(
+      robo_pub_name.str(), 10);
+} else {
+  this->robot_pub_ = this->create_publisher<geometry_msgs::msg::Twist>(
+      robo_pub_name.str(), 10); //sus
+}
 
   geometry_msgs::msg::Pose current_pose;
   bool _ready = false;
@@ -341,14 +345,17 @@ void PIDActionServer::execute(
       double angular_velocity =
           angular_error_to_velocity(theta_error, current_time);
 
-      // TODO(preston): do something
-
-      geometry_msgs::msg::Twist robo_msg =
-          create_twist(0.0, angular_velocity, current_time).twist;
+      // TODO(preston): do something      
+      if (this->is_sim) {
+        auto twist_stamped = create_twist(0.0, angular_velocity, current_time);
+        this->robot_pub_stamped_->publish(twist_stamped);
+      } else {
+        geometry_msgs::msg::Twist robo_msg = create_twist(0.0, angular_velocity, current_time).twist;
+        this->robot_pub_->publish(robo_msg);
+      }
 
       // printf("Rotating to target: Theta Error = %.2f\n", theta_error);
 
-      this->robot_pub_->publish(robo_msg);
       // continue loop early so we don't try moving linearly if we still need to
       // fix our angle
 
@@ -373,10 +380,13 @@ void PIDActionServer::execute(
       // TODO(preston): do something
       // printf("Moving to target: Distance Error = %.2f\n", distance_error);
 
-      geometry_msgs::msg::Twist robo_msg =
-          create_twist(0.8, 0.0, current_time).twist;
-
-      this->robot_pub_->publish(robo_msg);
+      if (this->is_sim) {
+        auto twist_stamped = create_twist(0.8, 0.0, current_time);
+        this->robot_pub_stamped_->publish(twist_stamped);
+      } else {
+        geometry_msgs::msg::Twist robo_msg = create_twist(0.8, 0.0, current_time).twist;
+        this->robot_pub_->publish(robo_msg);
+      }
 
       // Return early if still trying to reach target position
       // feedback->current_pose = current_pose;
@@ -394,10 +404,14 @@ void PIDActionServer::execute(
     reached_goal = true;
 
     // stoping robot
-    geometry_msgs::msg::Twist robo_msg =
-        create_twist(0.0, 0.0, current_time).twist;
+    if (this->is_sim) {
+      auto twist_stamped = create_twist(0.0, 0.0, current_time);
+      this->robot_pub_stamped_->publish(twist_stamped);
+    } else {
+      geometry_msgs::msg::Twist robo_msg = create_twist(0.0, 0.0, current_time).twist;
+      this->robot_pub_->publish(robo_msg);
+    }
 
-    this->robot_pub_->publish(robo_msg);
     loop_rate.sleep();
   }
 

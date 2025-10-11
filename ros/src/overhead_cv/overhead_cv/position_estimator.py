@@ -1,7 +1,7 @@
 import math
 
 import rclpy
-from geometry_msgs.msg import Point, Pose, PoseArray, PoseStamped
+from geometry_msgs.msg import Point, Pose, PoseArray, PoseStamped, Twist
 
 from shared_types.srv import PositionList
 
@@ -12,7 +12,6 @@ from overhead_cv.utils.multi_robot_estimator import MultiRobotStateEstimator
 from overhead_cv.utils.quat_to_yaw import quaternion_from_yaw
 
 from .utils.filtering_types import Command, Measurement
-
 
 class PositionEstimator(Node):
     def __init__(self):
@@ -86,7 +85,12 @@ class PositionEstimator(Node):
 
     def estimate_poses(self, measured_poses: PoseArray):
         """Update pose estimates after receiving new measurements"""
-
+        
+        # self.get_logger().info(f"estimate_poses called. #measured poses = {len(measured_poses.poses)}")
+        # if len(measured_poses.poses) == 0:
+        #     self.get_logger().warn("No measured poses in PoseArray - nothing to update")
+        #     return
+        
         measured_poses_list = [
             Measurement(
                 pose.position.x,
@@ -95,6 +99,8 @@ class PositionEstimator(Node):
             )
             for pose in measured_poses.poses
         ]
+
+        # self.get_logger().info(f"measured_poses_list: {measured_poses_list}")
 
         cur_time = self.get_clock().now()
         dt = (cur_time - self.prev_time).nanoseconds / 1e9
@@ -120,7 +126,7 @@ class PositionEstimator(Node):
                     orientation=q,
                 ),
             )
-
+            print(pose)
             self._publishers[i].publish(pose)
 
     def get_full_robo_pos(self, _, response):

@@ -65,6 +65,7 @@ class PIDActionServer : public rclcpp::Node {
   rclcpp_action::Server<PID>::SharedPtr action_server_;
 
   rclcpp::Publisher<geometry_msgs::msg::Twist>::SharedPtr robot_pub_;
+  rclcpp::Publisher<geometry_msgs::msg::TwistStamped>::SharedPtr robot_pub_stamped_;
 
   std::unordered_map<uint32_t, geometry_msgs::msg::Pose> robot_map_;
 

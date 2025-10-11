@@ -7,6 +7,7 @@ from overhead_cv.utils.filtering_types import LEN_STATE_VEC, Command, Measuremen
 from overhead_cv.utils.low_pass_filter import low_pass_filter
 from overhead_cv.utils.normalize_angle import normalize_angle
 
+import math
 
 # pylint: disable=too-few-public-methods,too-many-instance-attributes
 class RobotStateEstimator:
