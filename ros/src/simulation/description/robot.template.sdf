@@ -2,7 +2,7 @@
 <model name="robot{% ROBOT_NUM %}" canonical_link="chassis">
   <pose relative_to="world">{% POSE %}</pose>
   <link name="chassis">
-    <pose relative_to="__model__">0.5 0 0.4 0 0 0</pose>
+    <pose relative_to="__model__">0 0 0.4 0 0 0</pose>
     <inertial>
       <!--inertial properties of the link mass, inertia matix-->
       <mass>{% BODY_MASS %}</mass>
@@ -192,8 +192,8 @@
     <odom_publish_frequency>1</odom_publish_frequency>
     <use_twist_stamped>true</use_twist_stamped>
 
-    <max_linear_speed>0.000000001</max_linear_speed>  <!--needs to be adjusted to match real-->
-    <max_angular_speed>0.1</max_angular_speed>
+    <max_linear_speed>0.03</max_linear_speed>  <!--needs to be adjusted to match real-->
+    <max_angular_speed>0.5</max_angular_speed>
     <max_torque>0.0005</max_torque>    
   </plugin>
   <plugin filename="gz-sim-pose-publisher-system" name="gz::sim::systems::PosePublisher">

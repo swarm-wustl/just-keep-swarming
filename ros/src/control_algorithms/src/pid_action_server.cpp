@@ -8,16 +8,18 @@
 
 // to reset prev time, prev error, etc.)
 
-#define DISTANCE_TOLERANCE 0.10  // meters
-#define ANGLE_TOLERANCE 0.2      // rad
+#define DISTANCE_TOLERANCE 0.02  // meters
+#define ANGLE_TOLERANCE 0.005      // rad
 
 // Angular constsants
-#define Kp_angular 0.8
-#define Kd_angular 0.0
+#define Kp_angular 1.1
+#define Kd_angular 0.1
+#define Ki_angular 1.2
 
 // Linear constants
-#define Kp_linear 0.5
-#define Kd_linear 0.0
+#define Kp_linear 0.7
+#define Kd_linear 0.1
+#define Ki_linear 0.6
 
 // Timeout Constants (we are giving the robot 3 minutes to move to a block, if
 // it can't do that it is cooked)
@@ -28,6 +30,8 @@ static double angular_error_prev = 0.0;
 
 static int linear_time_prev = -1;
 static double linear_error_prev = 0.0;
+double linear_integral = 0.0;
+double angular_integral = 0.0;
 
 static geometry_msgs::msg::TwistStamped create_twist(
     double lin_x, double rot_z, builtin_interfaces::msg::Time time_) {
@@ -43,20 +47,20 @@ static geometry_msgs::msg::TwistStamped create_twist(
   return twist_stamped_;
 }
 
-static double delta_time(builtin_interfaces::msg::Time final,
-                         builtin_interfaces::msg::Time initial) {
-  const double NSEC_TO_SEC = 1000000000.0;
+// static double delta_time(builtin_interfaces::msg::Time final,
+//                          builtin_interfaces::msg::Time initial) {
+//   const double NSEC_TO_SEC = 1000000000.0;
 
-  int sec = final.sec - initial.sec;
-  int nsec = final.nanosec - initial.nanosec;
+//   int sec = final.sec - initial.sec;
+//   int nsec = final.nanosec - initial.nanosec;
 
-  if (nsec < 0) {
-    sec -= 1;
-    nsec += NSEC_TO_SEC;
-  }
+//   if (nsec < 0) {
+//     sec -= 1;
+//     nsec += NSEC_TO_SEC;
+//   }
 
-  return sec + (nsec / NSEC_TO_SEC);
-}
+//   return sec + (nsec / NSEC_TO_SEC);
+// }
 
 static double angular_error_to_velocity(double error,
                                         builtin_interfaces::msg::Time time) {
@@ -69,12 +73,14 @@ static double angular_error_to_velocity(double error,
     derivative = 0;
   } else {
     derivative = (error - angular_error_prev) / (time_curr - angular_time_prev);
+
+    angular_integral += error * (time_curr - angular_time_prev);
   }
 
   angular_time_prev = time_curr;
   angular_error_prev = error;
 
-  return (Kp_angular * error) + (Kd_angular * derivative) * 0.75;
+  return (Kp_angular * error) + (Kd_angular * derivative) + (Ki_angular * angular_integral);
 }
 
 static double linear_error_to_velocity(double error,
@@ -88,12 +94,14 @@ static double linear_error_to_velocity(double error,
     derivative = 0;
   } else {
     derivative = (error - linear_error_prev) / (time_curr - linear_time_prev);
+    
+    linear_integral += error * (time_curr - linear_time_prev);
   }
 
   linear_time_prev = time_curr;
   linear_error_prev = error;
 
-  return (Kp_linear * error) + (Kd_linear * derivative) * 0.75;
+  return (Kp_linear * error) + (Kd_linear * derivative) + (Ki_linear * linear_integral);
 }
 
 // NOTE: The robot is assumed to only rotate about the z-axis
@@ -311,14 +319,14 @@ if (this->is_sim) {
 
     if (this->debug_lvl == 2) {
       std::stringstream debug_statement;
-      debug_statement << "for robot " << goal->robot_id;
-      RCLCPP_INFO(this->get_logger(), debug_statement.str().c_str());
+      // debug_statement << "for robot " << goal->robot_id;
+      // RCLCPP_INFO(this->get_logger(), debug_statement.str().c_str());
 
-      RCLCPP_INFO(this->get_logger(), std::string("current theta: ")
-                                          .append(std::to_string(current_theta))
-                                          .append(" --- target theta: ")
-                                          .append(std::to_string(target_theta))
-                                          .c_str());
+      // RCLCPP_INFO(this->get_logger(), std::string("current theta: ")
+      //                                     .append(std::to_string(current_theta))
+      //                                     .append(" --- target theta: ")
+      //                                     .append(std::to_string(target_theta))
+      //                                     .c_str());
 
       RCLCPP_INFO(this->get_logger(),
                   (std::string("current pos: ")
@@ -326,13 +334,13 @@ if (this->is_sim) {
                            std::to_string(current_x))))
                       .c_str());
 
-      RCLCPP_INFO(this->get_logger(),
-                  (std::string("current angle: ")
-                       .append(std::to_string(current_theta))
-                       .c_str()));
-      RCLCPP_INFO(this->get_logger(), (std::string("theta error: ")
-                                           .append(std::to_string(theta_error))
-                                           .c_str()));
+      // RCLCPP_INFO(this->get_logger(),
+      //             (std::string("current angle: ")
+      //                  .append(std::to_string(current_theta))
+      //                  .c_str()));
+      // RCLCPP_INFO(this->get_logger(), (std::string("theta error: ")
+      //                                      .append(std::to_string(theta_error))
+      //                                      .c_str()));
     }
 
     // If angle is within tolerance, move robot to reach target distance
@@ -381,7 +389,7 @@ if (this->is_sim) {
       // printf("Moving to target: Distance Error = %.2f\n", distance_error);
 
       if (this->is_sim) {
-        auto twist_stamped = create_twist(0.8, 0.0, current_time);
+        auto twist_stamped = create_twist(0.3, 0.0, current_time);
         this->robot_pub_stamped_->publish(twist_stamped);
       } else {
         geometry_msgs::msg::Twist robo_msg = create_twist(0.8, 0.0, current_time).twist;
