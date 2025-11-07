@@ -9,12 +9,12 @@
 // to reset prev time, prev error, etc.)
 
 #define DISTANCE_TOLERANCE 0.02  // meters
-#define ANGLE_TOLERANCE 0.005      // rad
+#define ANGLE_TOLERANCE 0.3      // rad
 
 // Angular constsants
-#define Kp_angular 1.1
-#define Kd_angular 0.1
-#define Ki_angular 1.2
+#define Kp_angular 1.5
+#define Kd_angular 0.0
+#define Ki_angular 0.0
 
 // Linear constants
 #define Kp_linear 0.7
@@ -269,6 +269,8 @@ if (this->is_sim) {
   builtin_interfaces::msg::Time start_time = this->now();
   // need to get the current pose
   int debug_state = 0;
+  bool correct_angle = true;
+
   RCLCPP_INFO(this->get_logger(), "PID waiting for pos ");
   while (!reached_goal && rclcpp::ok()) {
     if (goal_handle->is_canceling()) {
@@ -349,7 +351,15 @@ if (this->is_sim) {
 
     // Turn robot to face target point
     // TODO(jaxon): we shouldnt have to check this
-    if (fabs(theta_error) > ANGLE_TOLERANCE) {
+    if (fabs(theta_error) > ANGLE_TOLERANCE || !correct_angle) {
+
+      correct_angle = false;
+      if(fabs(theta_error) < 0.08){
+        correct_angle = true;
+
+        printf("correct_angle");
+      }
+
       double angular_velocity =
           angular_error_to_velocity(theta_error, current_time);
 
@@ -382,14 +392,18 @@ if (this->is_sim) {
     }
 
     if (distance_error > DISTANCE_TOLERANCE) {
+      printf("forward");
       double linear_velocity =
           linear_error_to_velocity(distance_error, current_time);
+          
+      double angular_velocity =
+          angular_error_to_velocity(theta_error, current_time);
 
       // TODO(preston): do something
       // printf("Moving to target: Distance Error = %.2f\n", distance_error);
 
       if (this->is_sim) {
-        auto twist_stamped = create_twist(0.3, 0.0, current_time);
+        auto twist_stamped = create_twist(0.5, angular_velocity*0.75, current_time);
         this->robot_pub_stamped_->publish(twist_stamped);
       } else {
         geometry_msgs::msg::Twist robo_msg = create_twist(0.8, 0.0, current_time).twist;

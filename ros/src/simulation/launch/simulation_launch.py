@@ -80,7 +80,7 @@ def generate_launch_description():
                     "ros2",
                     "run",
                     "ros_gz_bridge",
-                    "parameter_bridge",
+                    "parameter_bridge",                    
                     f"/model/robot{n}/cmd_vel@geometry_msgs/msg/TwistStamped]ignition.msgs.Twist",
                     f"/model/robot{n}/pose@geometry_msgs/msg/PoseStamped@ignition.msgs.Pose",
                 ]
@@ -116,12 +116,22 @@ def generate_launch_description():
         cmd=["ign", "gazebo", filenames["compiled_world_filename"]]
     )
 
+    service_bridges_action = ExecuteProcess(
+        cmd=[
+            "ros2", "run", "ros_gz_bridge", "parameter_bridge",
+            "/world/default/create_joint@service@gz_msgs/srv/CreateJoint@gz.msgs.CreateJoint",
+            "/world/default/remove_joint@service@gz_msgs/srv/RemoveJoint@gz.msgs.RemoveJoint",
+        ]
+    )
+
+
     return LaunchDescription(
         get_launch_arguments()
         + [
             compile_world_action,
             run_ign_gazebo,
             topic_bridges_action,
+            service_bridges_action,
             # init_random_control_action,
         ]
     )
