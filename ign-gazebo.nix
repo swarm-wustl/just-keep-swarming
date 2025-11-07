@@ -1,43 +1,90 @@
-{ lib, stdenv, fetchFromGitHub, cmake, ogre, bullet, eigen, gz-cmake }:
+{ pkgs
+, gzCmake
+, pname ? "ign-gazebo-src"
+, version ? "unstable"
+, rev ? "main"
+, sha256 ? null
+, extraBuildInputs ? []
+, extraNativeBuildInputs ? []
+# , cmakeFlags ? 
+}:
 
-stdenv.mkDerivation rec {
-  pname = "ign-gazebo";
-  version = "9.4.0";
+let
+  lib = pkgs.lib;
+  # If caller didn't provide a sha256, use a fake placeholder so `nix` prints
+  # the real one on first attempt. Caller should replace it for deterministic builds.
+  sha = if sha256 == null then lib.fakeSha256 else sha256;
+in
 
-  src = fetchFromGitHub {
-    owner = "gazebosim";
-    repo = "gz-sim";
-    rev = "gz-sim9_9.4.0";
-    sha256 = "sha256-Em+sQ/wygnLX/gjDqVrPpkh0kZmne4Z4WElz/nBRawI=";
+pkgs.stdenv.mkDerivation rec {
+  name = "${pname}-${version}";
+  inherit version;
+
+  src = pkgs.fetchFromGitHub {
+    owner = "ignitionrobotics";
+    repo  = "ign-gazebo";
+    rev   = rev;
+    sha256 = sha;
   };
 
-  nativeBuildInputs = [ cmake ];
+  # Tools required for configure/build
+  nativeBuildInputs = (with pkgs; [
+    cmake
+    gzCmake
+    pkg-config
+    git
+    ninja
+    gnumake
+  ]) ++ extraNativeBuildInputs;
 
-  buildInputs = [
-    ogre
-    bullet
+  # Common libraries the project expects. Caller may extend/override.
+  buildInputs = (with pkgs; [
+    boost
     eigen
-  ];
+    protobuf
+    yaml-cpp
+    tinyxml2
+    bullet
+    assimp
+    ogre
+    openssl
+    opencv
+    pkg-config
+  ]) ++ extraBuildInputs;
 
+  # Ensure install path is $out
   cmakeFlags = [
-    "-DBUILD_GUI=ON"
+    "-DCMAKE_BUILD_TYPE=Release"
     "-DBUILD_TESTING=OFF"
-    "-DCMAKE_PREFIX_PATH=${gz-cmake}"
-    # "-DCMAKE_INSTALL_PREFIX=/nix/store/...-ign-gazebo-${version}" # often default is fine
+    "-DCMAKE_INSTALL_PREFIX=$out"
+    "-DCMAKE_MODULE_PATH=${gzCmake}/share/cmake/gz-cmake4"
   ];
 
-  # maybe patches if needed
+  # Configure / build / install phases (straightforward translation of upstream)
+  configurePhase = ''
+    mkdir -p build
+    cd build
+    cmake .. ${lib.concatStringsSep " " cmakeFlags}
+  '';
+
+  buildPhase = ''
+    cd build
+    # prefer parallel build if nproc is available
+    make -j$(command -v nproc >/dev/null 2>&1 && nproc || echo 1)
+  '';
 
   installPhase = ''
-    mkdir -p $out/bin
-    # actual install
-    ${lib.optionalString stdenv.isDarwin "# some adjustments"} 
+    cd build
     make install
   '';
 
+  # Small hygiene: strip debug symbols if desired (leave to caller if not wanted)
+  dontStrip = false;
+
   meta = with lib; {
-    description = "Ignition Gazebo sim – robotics simulator (Fortress)";
-    license = licenses.bsd3; 
-    maintainers = with maintainers; [ /* your handle */ ];
+    description = "Ignition Gazebo - build from source (derivation)";
+    homepage = "https://github.com/ignitionrobotics/ign-gazebo";
+    license = licenses.asl20;
+    maintainers = [];
   };
 }

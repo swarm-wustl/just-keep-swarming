@@ -21,9 +21,16 @@
         ]);
 
         gzCmake = pkgs.callPackage ./gz-cmake.nix { };
-        ignGazebo = pkgs.callPackage ./ign-gazebo.nix {
-          gz-cmake = gzCmake;
+        # ignGazebo = pkgs.callPackage ./ign-gazebo.nix {
+
+        ignGazebo = import ./ign-gazebo.nix {
+          inherit pkgs;
+          inherit gzCmake;
+          rev = "gz-sim9_9.4.0";
+          sha256 = "sha256-Em+sQ/wygnLX/gjDqVrPpkh0kZmne4Z4WElz/nBRawI=";
+          # extraBuildInputs = [ gzCmake ];
         };
+        # gz-cmake4 = gzCmake;
       in {
         devShells.default = pkgs.mkShell {
           name = "Swarm";
