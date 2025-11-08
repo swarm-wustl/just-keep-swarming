@@ -1,0 +1,9 @@
+uint16 docker_robot_id
+uint16 dockee_robot_id
+string docker_face
+string dockee_face
+---
+bool success
+uint16 error_code
+---
+string current_phase

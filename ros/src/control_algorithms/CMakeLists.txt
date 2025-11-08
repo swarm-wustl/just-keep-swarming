@@ -7,6 +7,7 @@ endif()
 
 find_package(ament_cmake REQUIRED)
 find_package(rclcpp REQUIRED)
+find_package(rclpy REQUIRED)
 find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
@@ -20,6 +21,7 @@ rosidl_generate_interfaces(
   "action/MultiRobotPathPlan.action"
   "action/Assemble.action"
   "action/PID.action"
+  "action/Dock.action"
   "msg/GridCell.msg"
   DEPENDENCIES
   geometry_msgs
@@ -169,5 +171,14 @@ if(BUILD_TESTING)
                           pid_action_server mrpp_action_server)
   endforeach()
 endif()
+
+# === PYTHON SUPPORT ===
+
+install(PROGRAMS
+  src/docking_action_server.py
+  src/test/test_docking.py
+  DESTINATION lib/${PROJECT_NAME}
+  OPTIONAL
+)
 
 ament_package()

@@ -7,9 +7,13 @@
   <maintainer email="25444757+sebtheiler@users.noreply.github.com">sebtheiler</maintainer>
   <license>TODO: License declaration</license>
   <buildtool_depend>ament_cmake</buildtool_depend>
+  <buildtool_depend>ament_cmake_python</buildtool_depend>
   <buildtool_depend>rosidl_default_generators</buildtool_depend>
   <member_of_group>rosidl_interface_packages</member_of_group>
   <depend>rclcpp</depend>
+  <depend>rclpy</depend>
+  <depend>python3-yaml</depend>
+  <depend>tf_transformations</depend>
   <depend>action_msgs</depend>
   <depend>nav_msgs</depend>
   <depend>geometry_msgs</depend>
