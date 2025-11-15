@@ -12,6 +12,7 @@ find_package(rclcpp_action REQUIRED)
 find_package(rclcpp_components REQUIRED)
 find_package(rosidl_default_generators REQUIRED)
 find_package(geometry_msgs REQUIRED)
+find_package(gazebo_msgs REQUIRED)
 find_package(std_msgs REQUIRED)
 find_package(nav_msgs REQUIRED)
 find_package(shared_types REQUIRED)
@@ -25,6 +26,7 @@ rosidl_generate_interfaces(
   "msg/GridCell.msg"
   DEPENDENCIES
   geometry_msgs
+  gazebo_msgs
   std_msgs)
 
 set(ALGORITHM_SOURCES
@@ -177,6 +179,7 @@ endif()
 install(PROGRAMS
   src/docking_action_server.py
   src/test/test_docking.py
+  src/gazebo_link_attacher.py
   DESTINATION lib/${PROJECT_NAME}
   OPTIONAL
 )

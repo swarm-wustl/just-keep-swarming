@@ -12,7 +12,13 @@ from rclpy.callback_groups import ReentrantCallbackGroup
 from geometry_msgs.msg import Pose, PoseStamped, Quaternion
 from control_algorithms.action import Dock, PID
 
-# ros2 action send_goal /robot0/dock control_algorithms/action/Dock   "{docker_robot_id: 0, dockee_robot_id: 1, docker_face: 'front', dockee_face: 'back'}"
+from gazebo_link_attacher import GazeboLinkAttacher
+
+# === START DOCKING SERVER ===
+# ros2 run control_algorithms docking_action_server.py --ros-args -p robot_id:=0 -p robots:=[0,1]
+
+# === SEND DOCKING GOAL ===
+# ros2 action send_goal /robot0/dock control_algorithms/action/Dock "{docker_robot_id: 0, dockee_robot_id: 1, docker_face: 'front', dockee_face: 'back'}"
 
 class DockingActionServer(Node):
     
@@ -31,12 +37,16 @@ class DockingActionServer(Node):
         self.declare_parameter('robots')
         self.declare_parameter('standoff_distance', 0.02)
         self.declare_parameter('dockee_movement_threshold', 0.05)
+        self.declare_parameter('use_link_attacher', True)  # Enable/disable attaching
+
+        
 
         # get params
         self.robot_id = self.get_parameter('robot_id').value
         robot_ids = self.get_parameter('robots').value
         self.standoff_distance = self.get_parameter('standoff_distance').value
         self.dockee_movement_threshold = self.get_parameter('dockee_movement_threshold').value
+        self.use_link_attacher = self.get_parameter('use_link_attacher').value
 
         self.robot_params = {
             'LENGTH': 0.08, # m
@@ -96,6 +106,9 @@ class DockingActionServer(Node):
             cancel_callback=self.cancel_callback,
             callback_group=self.callback_group
         )
+
+        # initialize the attacher object
+        self.link_attacher = GazeboLinkAttacher(self)
 
         self.get_logger().info(f'Docking Action Server initialized for robot{self.robot_id}')
         
@@ -215,6 +228,18 @@ class DockingActionServer(Node):
                 self.get_logger().error(f'PID action failed with error code: {pid_result.result.error_code}')
                 goal_handle.abort()
                 return Dock.Result(success=False, error_code=self.ERROR_PID_FAILED)
+
+            # PHASE 3: Attach the robots
+            if self.use_link_attacher:
+                self.publish_feedback('attaching')
+                docker_model = f'robot{goal.docker_robot_id}'
+                dockee_model = f'robot{goal.dockee_robot_id}'
+                
+                self.get_logger().info(f'Attaching {docker_model} to {dockee_model}')
+                attach_success = self.link_attacher.attach(dockee_model, docker_model)
+                
+                if not attach_success:
+                    self.get_logger().warn('Failed to attach robots, but docking navigation succeeded')
             
             # success!
             self.get_logger().info('Docking completed successfully')
