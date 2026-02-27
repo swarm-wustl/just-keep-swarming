@@ -1,0 +1,1 @@
+ros2 launch depthai_ros_driver camera.launch.py
