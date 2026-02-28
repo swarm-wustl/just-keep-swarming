@@ -1,72 +1,41 @@
+import os
 from launch import LaunchDescription
 from launch.actions import IncludeLaunchDescription
 from launch.launch_description_sources import PythonLaunchDescriptionSource
-from launch.substitutions import PathJoinSubstitution
-from launch_ros.actions import Node
-from launch_ros.substitutions import FindPackageShare
+from ament_index_python.packages import get_package_share_directory
 
 def generate_launch_description():
 
-    # Camera Launch
-    depthai_launch = IncludeLaunchDescription(
-        PythonLaunchDescriptionSource(
-            PathJoinSubstitution([
-                FindPackageShare('depthai_ros_driver'),
-                'launch',
-                'rgbd_pcl.launch.py'
-            ])
-        )
-    )
-
-    # 
-    odom_node = Node(
-        package='rtabmap_odom',
-        executable='rgbd_odometry',
-        name='rgbd_odometry',
-        parameters=[{
-            'frame_id': 'oak',
-            'approx_sync': True,
-            'subscribe_depth': True,
-            'subscribe_rgb': True,
-        }],
-        remappings=[
-            ('rgb/image', '/oak/rgb/image_raw'),
-            ('depth/image', '/oak/stereo/image_raw'),
-            ('rgb/camera_info', '/oak/rgb/camera_info'),
-            ('odom', '/odom')
-        ],
-        output='screen'
-    )
-
-    # 3. Launch RTAB-Map with internal OctoMap generation
-    rtabmap_node = Node(
-        package='rtabmap_slam',
-        executable='rtabmap',
-        name='rtabmap',
-        parameters=[{
-            'frame_id': 'oak',
-            'subscribe_depth': True,
-            'subscribe_rgb': True,
-            'approx_sync': True,
-            'queue_size': 30,               # Replaced sync_queue_size to match rtabmap_slam conventions
-            
-            #OctoMap Parameters
-            'Grid/3D': 'true',              # Forces RTAB-Map to build a 3D voxel map
-            'Grid/RayTracing': 'true',      # Clears empty space automatically behind the camera
-            'Grid/CellSize': '0.05',        # 5cm voxels 
-            'Grid/RangeMax': '5.0',         # Ignore noisy depth points past 5 meters
-        }],
-        remappings=[
-            ('rgb/image', '/oak/rgb/image_raw'),
-            ('depth/image', '/oak/stereo/image_raw'),
-            ('rgb/camera_info', '/oak/rgb/camera_info'),
-            ('odom', '/odom'),
-        ],
-        arguments=['--delete_db_on_start']  # Clear memory on startup for clean testing
-    )
-
     return LaunchDescription([
-        depthai_launch,
-        odom_node,
-        rtabmap_node
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join("/opt/ros/humble/share/depthai_ros_driver", "launch", "camera.launch.py")
+            ),
+            launch_arguments={
+                "name": "oak",
+                "parent_frame": "base_link",
+                "cam_pos_x": "0.1", # where the camera is on the chassis
+                "cam_pos_y": "0.0",
+                "cam_pos_z": "0.1",
+                "camera.i_enable_imu": "false", 
+                "rgb.i_resolution": "1080p",
+                "stereo.i_align_depth": "true", 
+            }.items(),
+        ),
+
+        IncludeLaunchDescription(
+            PythonLaunchDescriptionSource(
+                os.path.join(get_package_share_directory('rtabmap_launch'), 'launch', 'rtabmap.launch.py')
+            ),
+            launch_arguments={
+                'rtabmap_args': '--delete_db_on_start',
+                'rgb_topic': '/oak/rgb/image_raw',
+                'depth_topic': '/oak/stereo/image_raw',
+                'camera_info_topic': '/oak/rgb/camera_info',
+                'frame_id': 'base_link', 
+                'approx_sync': 'true',
+                'approx_sync_max_interval': '0.1',
+                'queue_size': '20',
+            }.items(),
+        ),
     ])
