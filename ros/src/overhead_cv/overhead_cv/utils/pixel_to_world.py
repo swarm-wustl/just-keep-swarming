@@ -42,4 +42,4 @@ def pixel_to_world(
     X = x_norm * camera_height  # / focal_length
     Y = y_norm * camera_height  # / focal_length
 
-    return X, Y
+    return -(X + 2.5), (Y + 1.0)

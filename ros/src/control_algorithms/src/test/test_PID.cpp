@@ -78,7 +78,27 @@ TestPID_AC::TestPID_AC(const rclcpp::NodeOptions &options)
   auto future_goal = client_ptr_->async_send_goal(goal_msg, send_goal_options);
 
   RCLCPP_INFO(this->get_logger(), "Goal sent!");
+
+  std::stringstream goal_pose_pub;
+
+  goal_pose_pub << "/robot" << std::to_string(rob_id) << "/goal_pose";
   // must verify ans
+  auto goal_pub_ = this->create_publisher<geometry_msgs::msg::PoseStamped>(
+      goal_pose_pub.str(),
+      10);  // sus shit
+
+  rclcpp::Rate loop_rate(2);
+  while (rclcpp::ok()) {
+    geometry_msgs::msg::PoseStamped pose_swag;
+    std_msgs::msg::Header header;
+    header.set__frame_id("odom");
+
+    header.set__stamp(this->get_clock()->now());
+    pose_swag.set__pose(test_robot_target_0);
+    pose_swag.set__header(header);
+    goal_pub_->publish(pose_swag);
+    loop_rate.sleep();
+  }
 }
 
 // ned to do make a feedback tester

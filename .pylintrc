@@ -24,6 +24,7 @@ good-names=i,
            Y,
            z,
            Z,
+           H,
            dt, 
            q,
            r,
@@ -40,6 +41,7 @@ good-names=i,
            B,
            F,
            P_prev,
+           P_post,
            N,
            M,
            J
@@ -58,7 +60,11 @@ ignore-docstrings=yes
 ignore-imports=yes
 
 [MESSAGES CONTROL]
-disable=missing-docstring,assigning-non-slot,unspecified-encoding,no-name-in-module,duplicate-code
+disable=missing-docstring,assigning-non-slot,unspecified-encoding,no-name-in-module,duplicate-code,fixme
 
 [DESIGN]
-max-attributes=8
+max-attributes=10
+
+[FORMAT]
+max-locals=30
+max-line-length=200
