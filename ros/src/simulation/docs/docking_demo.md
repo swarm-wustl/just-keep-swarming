@@ -50,6 +50,7 @@ x=0                          x=1.2m
 
 - **Gazebo Harmonic** (gz-sim 8.x)
 - **ROS 2 Jazzy**
+- **ros_gz_bridge** - For ROS 2 / Gazebo topic bridging
 - **AttachablePlugin** - Third-party plugin for dynamic joint creation
 
 ### Installing AttachablePlugin
@@ -64,81 +65,74 @@ colcon build --packages-select attachable_joint_plugin
 ## Launching the Demo
 
 ```bash
-# Set plugin path (required - plugin installs to build directory)
+# Terminal 1: Set plugin path and launch simulation
 export GZ_SIM_SYSTEM_PLUGIN_PATH=$PWD/build/attachable_joint_plugin:$GZ_SIM_SYSTEM_PLUGIN_PATH
-
-# Launch
 ros2 launch simulation docking_demo_harmonic_launch.py
+
+# Terminal 2: Run manual control
+ros2 run simulation manual_control
 ```
 
-## Attaching and Detaching Robots
+## Manual Control
 
-Robots start **disconnected**. Use the `/attach` topic to create or remove joints.
+The `manual_control` node provides keyboard-based control for driving and docking robots.
 
-### Message Format
+### Controls
 
-```
-[parent_model][parent_link][child_model][child_link][attach|detach]
-```
+| Key | Action |
+|-----|--------|
+| **W** / **Up** | Drive forward |
+| **S** / **Down** | Drive backward |
+| **A** / **Left** | Turn left |
+| **D** / **Right** | Turn right |
+| **1-4** | Select robot 0-3 |
+| **Space** | Stop selected robot |
+| **X** | Stop all robots |
+| **J** | Dock selected robot to next (N → N+1) |
+| **K** | Undock selected robot from next |
+| **L** | Dock previous robot to selected (N-1 → N) |
+| **;** | Undock previous robot from selected |
+| **H** | Show help |
+| **Q** / **Esc** | Quit |
 
-### Attach Examples
+### Example Workflow
+
+1. Select robot 0: press **1**
+2. Drive forward to approach robot 1: hold **W**
+3. Stop: press **Space**
+4. Dock robot 0 to robot 1: press **J**
+5. Now both robots move together when you drive
+
+## Command-Line Control (Alternative)
+
+You can also control robots directly via command line.
+
+### Attach/Detach Commands
 
 ```bash
 # Attach robot_0 to robot_1
 gz topic -t /attach -m gz.msgs.StringMsg -p 'data:"[robot_0][chassis][robot_1][chassis][attach]"'
 
-# Attach robot_1 to robot_2
-gz topic -t /attach -m gz.msgs.StringMsg -p 'data:"[robot_1][chassis][robot_2][chassis][attach]"'
-
-# Attach robot_2 to robot_3 (form a 4-robot chain)
-gz topic -t /attach -m gz.msgs.StringMsg -p 'data:"[robot_2][chassis][robot_3][chassis][attach]"'
-```
-
-### Detach Examples
-
-```bash
-# Detach robot_1 from robot_2 (splits chain into two pairs)
-gz topic -t /attach -m gz.msgs.StringMsg -p 'data:"[robot_1][chassis][robot_2][chassis][detach]"'
-
 # Detach robot_0 from robot_1
 gz topic -t /attach -m gz.msgs.StringMsg -p 'data:"[robot_0][chassis][robot_1][chassis][detach]"'
 ```
 
-## Driving Robots
-
-Each robot has a differential drive that accepts velocity commands.
-
-### Drive Commands
+### Drive Commands (via ROS 2)
 
 ```bash
 # Drive robot_0 forward
-gz topic -t /model/robot_0/cmd_vel -m gz.msgs.Twist -p 'linear:{x:0.3}' &
-gz topic -t /model/robot_1/cmd_vel -m gz.msgs.Twist -p 'linear:{x:0.3}' &
-gz topic -t /model/robot_2/cmd_vel -m gz.msgs.Twist -p 'linear:{x:0.3}' &
-gz topic -t /model/robot_3/cmd_vel -m gz.msgs.Twist -p 'linear:{x:0.3}'
+ros2 topic pub /model/robot_0/cmd_vel geometry_msgs/msg/Twist "{linear: {x: 0.3}}"
 
-# Drive robot_1 forward
-gz topic -t /model/robot_1/cmd_vel -m gz.msgs.Twist -p 'linear:{x:0.3}'
-
-# Turn robot_0 (angular velocity)
-gz topic -t /model/robot_0/cmd_vel -m gz.msgs.Twist -p 'angular:{z:0.5}'
+# Turn robot_0
+ros2 topic pub /model/robot_0/cmd_vel geometry_msgs/msg/Twist "{angular: {z: 0.5}}"
 
 # Stop robot_0
-gz topic -t /model/robot_0/cmd_vel -m gz.msgs.Twist -p 'linear:{x:0}'
+ros2 topic pub /model/robot_0/cmd_vel geometry_msgs/msg/Twist "{}"
 ```
 
 ### Driving Attached Chains
 
-When robots are attached, driving **any** robot in the chain will move the entire chain:
-
-```bash
-# Connect robots 0, 1, 2
-gz topic -t /attach -m gz.msgs.StringMsg -p 'data:"[robot_0][chassis][robot_1][chassis][attach]"'
-gz topic -t /attach -m gz.msgs.StringMsg -p 'data:"[robot_1][chassis][robot_2][chassis][attach]"'
-
-# Drive from the middle - whole chain moves
-gz topic -t /model/robot_1/cmd_vel -m gz.msgs.Twist -p 'linear:{x:0.3}'
-```
+When robots are attached, driving **any** robot in the chain moves the entire chain.
 
 ## Physics Tuning
 
@@ -207,11 +201,18 @@ Overall footprint: 10x10x10 cm
 
 ### Topics
 
+**Gazebo Topics:**
+
 | Topic | Type | Purpose |
 |-------|------|---------|
 | `/attach` | `gz.msgs.StringMsg` | Attach/detach commands |
-| `/model/robot_N/cmd_vel` | `gz.msgs.Twist` | Velocity commands |
-| `/model/robot_N/odometry` | `gz.msgs.Odometry` | Odometry feedback |
+
+**ROS 2 Topics (bridged):**
+
+| Topic | Type | Purpose |
+|-------|------|---------|
+| `/model/robot_N/cmd_vel` | `geometry_msgs/Twist` | Velocity commands |
+| `/model/robot_N/odometry` | `nav_msgs/Odometry` | Odometry feedback |
 
 ## Known Limitations
 
@@ -228,7 +229,9 @@ simulation/
 ├── description/
 │   └── docking_demo_harmonic.sdf    # World file with robots and physics config
 ├── launch/
-│   └── docking_demo_harmonic_launch.py
+│   └── docking_demo_harmonic_launch.py  # Launches Gazebo + ros_gz_bridge
+├── simulation/
+│   └── manual_control.py            # Keyboard control node
 └── docs/
     └── docking_demo.md              # This file
 ```
