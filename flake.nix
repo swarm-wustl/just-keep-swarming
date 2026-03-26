@@ -11,7 +11,7 @@
           inherit system;
           overlays = [ nix-ros-overlay.overlays.default ];
         };
-        rosDistro = "humble";
+        rosDistro = "jazzy";
 
         pythonWithPackages = pkgs.python312.withPackages (p: with p; [
           numpy
@@ -20,16 +20,16 @@
           debugpy
         ]);
 
-        gzCmake = pkgs.callPackage ./gz-cmake.nix { };
+        # gzCmake = pkgs.callPackage ./gz-cmake.nix { };
         # ignGazebo = pkgs.callPackage ./ign-gazebo.nix {
 
-        ignGazebo = import ./ign-gazebo.nix {
-          inherit pkgs;
-          inherit gzCmake;
-          rev = "gz-sim9_9.4.0";
-          sha256 = "sha256-Em+sQ/wygnLX/gjDqVrPpkh0kZmne4Z4WElz/nBRawI=";
-          # extraBuildInputs = [ gzCmake ];
-        };
+        # ignGazebo = import ./ign-gazebo.nix {
+        #   inherit pkgs;
+        #   inherit gzCmake;
+        #   rev = "gz-sim9_9.4.0";
+        #   sha256 = "sha256-Em+sQ/wygnLX/gjDqVrPpkh0kZmne4Z4WElz/nBRawI=";
+        #   # extraBuildInputs = [ gzCmake ];
+        # };
         # gz-cmake4 = gzCmake;
       in {
         devShells.default = pkgs.mkShell {
@@ -38,9 +38,9 @@
             colcon
             opencv
             pythonWithPackages
-            gz-cmake_3
-            gz-utils_2
-            ignGazebo
+            # gz-cmake_3
+            # gz-utils_2
+            # ignGazebo
 
             (with rosPackages.${rosDistro}; buildEnv {
               paths = [

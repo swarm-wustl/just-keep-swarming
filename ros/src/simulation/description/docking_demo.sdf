@@ -1,0 +1,582 @@
+<?xml version="1.0"?>
+<!--
+  Scalable N-robot docking demo with 4 docking ports per robot.
+
+  Each robot has docking ports: front (+X), back (-X), left (+Y), right (-Y)
+
+  Topic naming convention:
+    /robot_{i}/dock_{port}/attach
+    /robot_{i}/dock_{port}/detach
+    /robot_{i}/dock_{port}/state
+
+  where {i} is the robot index and {port} is front/back/left/right.
+
+  Example commands:
+    # Detach robot_0's front connection
+    ign topic -t /robot_0/dock_front/detach -m ignition.msgs.Empty -p ''
+
+    # Reattach
+    ign topic -t /robot_0/dock_front/attach -m ignition.msgs.Empty -p ''
+-->
+<sdf version="1.9">
+  <world name="docking_demo">
+    <!-- Physics configuration -->
+    <physics name="1ms" type="ignored">
+      <max_step_size>0.001</max_step_size>
+      <real_time_factor>1.0</real_time_factor>
+    </physics>
+
+    <!-- Required system plugins -->
+    <plugin filename="gz-sim-physics-system"
+            name="gz::sim::systems::Physics">
+    </plugin>
+    <plugin filename="gz-sim-user-commands-system"
+            name="gz::sim::systems::UserCommands">
+    </plugin>
+    <plugin filename="gz-sim-scene-broadcaster-system"
+            name="gz::sim::systems::SceneBroadcaster">
+    </plugin>
+
+    <!-- Lighting -->
+    <light type="directional" name="sun">
+      <cast_shadows>true</cast_shadows>
+      <pose>0 0 10 0 0 0</pose>
+      <diffuse>0.8 0.8 0.8 1</diffuse>
+      <specular>0.2 0.2 0.2 1</specular>
+      <attenuation>
+        <range>1000</range>
+        <constant>0.9</constant>
+        <linear>0.01</linear>
+        <quadratic>0.001</quadratic>
+      </attenuation>
+      <direction>-0.5 0.1 -0.9</direction>
+    </light>
+
+    <!-- Ground plane -->
+    <model name="ground_plane">
+      <static>true</static>
+      <link name="link">
+        <collision name="collision">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+            </plane>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <plane>
+              <normal>0 0 1</normal>
+              <size>100 100</size>
+            </plane>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.8 1</ambient>
+            <diffuse>0.8 0.8 0.8 1</diffuse>
+            <specular>0.8 0.8 0.8 1</specular>
+          </material>
+        </visual>
+      </link>
+    </model>
+
+    <!-- ========== ROBOT 0 (Red) ========== -->
+    <model name="robot_0">
+      <pose>0 0 0.05 0 0 0</pose>
+      <link name="chassis">
+        <inertial>
+          <mass>1.0</mass>
+          <inertia>
+            <ixx>0.00167</ixx>
+            <iyy>0.00167</iyy>
+            <izz>0.00167</izz>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <box><size>0.1 0.1 0.1</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>0.1 0.1 0.1</size></box>
+          </geometry>
+          <material>
+            <ambient>0.8 0.2 0.2 1</ambient>
+            <diffuse>0.8 0.2 0.2 1</diffuse>
+            <specular>0.8 0.2 0.2 1</specular>
+          </material>
+        </visual>
+      </link>
+      <!-- Dock ports as small visual indicators -->
+      <link name="dock_front">
+        <pose relative_to="chassis">0.05 0 0 0 0 0</pose>
+        <inertial>
+          <mass>0.01</mass>
+          <inertia>
+            <ixx>0.00001</ixx><iyy>0.00001</iyy><izz>0.00001</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry><sphere><radius>0.01</radius></sphere></geometry>
+          <material>
+            <ambient>1 1 0 1</ambient>
+            <diffuse>1 1 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <joint name="dock_front_joint" type="fixed">
+        <parent>chassis</parent>
+        <child>dock_front</child>
+      </joint>
+      <link name="dock_back">
+        <pose relative_to="chassis">-0.05 0 0 0 0 0</pose>
+        <inertial>
+          <mass>0.01</mass>
+          <inertia>
+            <ixx>0.00001</ixx><iyy>0.00001</iyy><izz>0.00001</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry><sphere><radius>0.01</radius></sphere></geometry>
+          <material>
+            <ambient>1 1 0 1</ambient>
+            <diffuse>1 1 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <joint name="dock_back_joint" type="fixed">
+        <parent>chassis</parent>
+        <child>dock_back</child>
+      </joint>
+      <link name="dock_left">
+        <pose relative_to="chassis">0 0.05 0 0 0 0</pose>
+        <inertial>
+          <mass>0.01</mass>
+          <inertia>
+            <ixx>0.00001</ixx><iyy>0.00001</iyy><izz>0.00001</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry><sphere><radius>0.01</radius></sphere></geometry>
+          <material>
+            <ambient>1 1 0 1</ambient>
+            <diffuse>1 1 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <joint name="dock_left_joint" type="fixed">
+        <parent>chassis</parent>
+        <child>dock_left</child>
+      </joint>
+      <link name="dock_right">
+        <pose relative_to="chassis">0 -0.05 0 0 0 0</pose>
+        <inertial>
+          <mass>0.01</mass>
+          <inertia>
+            <ixx>0.00001</ixx><iyy>0.00001</iyy><izz>0.00001</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry><sphere><radius>0.01</radius></sphere></geometry>
+          <material>
+            <ambient>1 1 0 1</ambient>
+            <diffuse>1 1 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <joint name="dock_right_joint" type="fixed">
+        <parent>chassis</parent>
+        <child>dock_right</child>
+      </joint>
+      <!-- DetachableJoint: robot_0 front -> robot_1 back -->
+      <plugin filename="ignition-gazebo-detachable-joint-system"
+              name="ignition::gazebo::systems::DetachableJoint">
+        <parent_link>chassis</parent_link>
+        <child_model>robot_1</child_model>
+        <child_link>chassis</child_link>
+        <detach_topic>/robot_0/dock_front/detach</detach_topic>
+        <attach_topic>/robot_0/dock_front/attach</attach_topic>
+        <output_topic>/robot_0/dock_front/state</output_topic>
+      </plugin>
+    </model>
+
+    <!-- ========== ROBOT 1 (Green) ========== -->
+    <model name="robot_1">
+      <pose>0.12 0 0.05 0 0 0</pose>
+      <link name="chassis">
+        <inertial>
+          <mass>1.0</mass>
+          <inertia>
+            <ixx>0.00167</ixx>
+            <iyy>0.00167</iyy>
+            <izz>0.00167</izz>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <box><size>0.1 0.1 0.1</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>0.1 0.1 0.1</size></box>
+          </geometry>
+          <material>
+            <ambient>0.2 0.8 0.2 1</ambient>
+            <diffuse>0.2 0.8 0.2 1</diffuse>
+            <specular>0.2 0.8 0.2 1</specular>
+          </material>
+        </visual>
+      </link>
+      <link name="dock_front">
+        <pose relative_to="chassis">0.05 0 0 0 0 0</pose>
+        <inertial>
+          <mass>0.01</mass>
+          <inertia>
+            <ixx>0.00001</ixx><iyy>0.00001</iyy><izz>0.00001</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry><sphere><radius>0.01</radius></sphere></geometry>
+          <material>
+            <ambient>1 1 0 1</ambient>
+            <diffuse>1 1 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <joint name="dock_front_joint" type="fixed">
+        <parent>chassis</parent>
+        <child>dock_front</child>
+      </joint>
+      <link name="dock_back">
+        <pose relative_to="chassis">-0.05 0 0 0 0 0</pose>
+        <inertial>
+          <mass>0.01</mass>
+          <inertia>
+            <ixx>0.00001</ixx><iyy>0.00001</iyy><izz>0.00001</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry><sphere><radius>0.01</radius></sphere></geometry>
+          <material>
+            <ambient>1 1 0 1</ambient>
+            <diffuse>1 1 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <joint name="dock_back_joint" type="fixed">
+        <parent>chassis</parent>
+        <child>dock_back</child>
+      </joint>
+      <link name="dock_left">
+        <pose relative_to="chassis">0 0.05 0 0 0 0</pose>
+        <inertial>
+          <mass>0.01</mass>
+          <inertia>
+            <ixx>0.00001</ixx><iyy>0.00001</iyy><izz>0.00001</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry><sphere><radius>0.01</radius></sphere></geometry>
+          <material>
+            <ambient>1 1 0 1</ambient>
+            <diffuse>1 1 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <joint name="dock_left_joint" type="fixed">
+        <parent>chassis</parent>
+        <child>dock_left</child>
+      </joint>
+      <link name="dock_right">
+        <pose relative_to="chassis">0 -0.05 0 0 0 0</pose>
+        <inertial>
+          <mass>0.01</mass>
+          <inertia>
+            <ixx>0.00001</ixx><iyy>0.00001</iyy><izz>0.00001</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry><sphere><radius>0.01</radius></sphere></geometry>
+          <material>
+            <ambient>1 1 0 1</ambient>
+            <diffuse>1 1 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <joint name="dock_right_joint" type="fixed">
+        <parent>chassis</parent>
+        <child>dock_right</child>
+      </joint>
+      <!-- DetachableJoint: robot_1 front -> robot_2 back -->
+      <plugin filename="ignition-gazebo-detachable-joint-system"
+              name="ignition::gazebo::systems::DetachableJoint">
+        <parent_link>chassis</parent_link>
+        <child_model>robot_2</child_model>
+        <child_link>chassis</child_link>
+        <detach_topic>/robot_1/dock_front/detach</detach_topic>
+        <attach_topic>/robot_1/dock_front/attach</attach_topic>
+        <output_topic>/robot_1/dock_front/state</output_topic>
+      </plugin>
+      <!-- DetachableJoint: robot_1 left -> robot_3 right (branching demo) -->
+      <plugin filename="ignition-gazebo-detachable-joint-system"
+              name="ignition::gazebo::systems::DetachableJoint">
+        <parent_link>chassis</parent_link>
+        <child_model>robot_3</child_model>
+        <child_link>chassis</child_link>
+        <detach_topic>/robot_1/dock_left/detach</detach_topic>
+        <attach_topic>/robot_1/dock_left/attach</attach_topic>
+        <output_topic>/robot_1/dock_left/state</output_topic>
+      </plugin>
+    </model>
+
+    <!-- ========== ROBOT 2 (Blue) ========== -->
+    <model name="robot_2">
+      <pose>0.24 0 0.05 0 0 0</pose>
+      <link name="chassis">
+        <inertial>
+          <mass>1.0</mass>
+          <inertia>
+            <ixx>0.00167</ixx>
+            <iyy>0.00167</iyy>
+            <izz>0.00167</izz>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <box><size>0.1 0.1 0.1</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>0.1 0.1 0.1</size></box>
+          </geometry>
+          <material>
+            <ambient>0.2 0.2 0.8 1</ambient>
+            <diffuse>0.2 0.2 0.8 1</diffuse>
+            <specular>0.2 0.2 0.8 1</specular>
+          </material>
+        </visual>
+      </link>
+      <link name="dock_front">
+        <pose relative_to="chassis">0.05 0 0 0 0 0</pose>
+        <inertial>
+          <mass>0.01</mass>
+          <inertia>
+            <ixx>0.00001</ixx><iyy>0.00001</iyy><izz>0.00001</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry><sphere><radius>0.01</radius></sphere></geometry>
+          <material>
+            <ambient>1 1 0 1</ambient>
+            <diffuse>1 1 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <joint name="dock_front_joint" type="fixed">
+        <parent>chassis</parent>
+        <child>dock_front</child>
+      </joint>
+      <link name="dock_back">
+        <pose relative_to="chassis">-0.05 0 0 0 0 0</pose>
+        <inertial>
+          <mass>0.01</mass>
+          <inertia>
+            <ixx>0.00001</ixx><iyy>0.00001</iyy><izz>0.00001</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry><sphere><radius>0.01</radius></sphere></geometry>
+          <material>
+            <ambient>1 1 0 1</ambient>
+            <diffuse>1 1 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <joint name="dock_back_joint" type="fixed">
+        <parent>chassis</parent>
+        <child>dock_back</child>
+      </joint>
+      <link name="dock_left">
+        <pose relative_to="chassis">0 0.05 0 0 0 0</pose>
+        <inertial>
+          <mass>0.01</mass>
+          <inertia>
+            <ixx>0.00001</ixx><iyy>0.00001</iyy><izz>0.00001</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry><sphere><radius>0.01</radius></sphere></geometry>
+          <material>
+            <ambient>1 1 0 1</ambient>
+            <diffuse>1 1 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <joint name="dock_left_joint" type="fixed">
+        <parent>chassis</parent>
+        <child>dock_left</child>
+      </joint>
+      <link name="dock_right">
+        <pose relative_to="chassis">0 -0.05 0 0 0 0</pose>
+        <inertial>
+          <mass>0.01</mass>
+          <inertia>
+            <ixx>0.00001</ixx><iyy>0.00001</iyy><izz>0.00001</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry><sphere><radius>0.01</radius></sphere></geometry>
+          <material>
+            <ambient>1 1 0 1</ambient>
+            <diffuse>1 1 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <joint name="dock_right_joint" type="fixed">
+        <parent>chassis</parent>
+        <child>dock_right</child>
+      </joint>
+    </model>
+
+    <!-- ========== ROBOT 3 (Yellow) - Branch off robot_1 ========== -->
+    <model name="robot_3">
+      <pose>0.12 0.12 0.05 0 0 0</pose>
+      <link name="chassis">
+        <inertial>
+          <mass>1.0</mass>
+          <inertia>
+            <ixx>0.00167</ixx>
+            <iyy>0.00167</iyy>
+            <izz>0.00167</izz>
+            <ixy>0</ixy>
+            <ixz>0</ixz>
+            <iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <collision name="collision">
+          <geometry>
+            <box><size>0.1 0.1 0.1</size></box>
+          </geometry>
+        </collision>
+        <visual name="visual">
+          <geometry>
+            <box><size>0.1 0.1 0.1</size></box>
+          </geometry>
+          <material>
+            <ambient>0.8 0.8 0.2 1</ambient>
+            <diffuse>0.8 0.8 0.2 1</diffuse>
+            <specular>0.8 0.8 0.2 1</specular>
+          </material>
+        </visual>
+      </link>
+      <link name="dock_front">
+        <pose relative_to="chassis">0.05 0 0 0 0 0</pose>
+        <inertial>
+          <mass>0.01</mass>
+          <inertia>
+            <ixx>0.00001</ixx><iyy>0.00001</iyy><izz>0.00001</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry><sphere><radius>0.01</radius></sphere></geometry>
+          <material>
+            <ambient>1 1 0 1</ambient>
+            <diffuse>1 1 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <joint name="dock_front_joint" type="fixed">
+        <parent>chassis</parent>
+        <child>dock_front</child>
+      </joint>
+      <link name="dock_back">
+        <pose relative_to="chassis">-0.05 0 0 0 0 0</pose>
+        <inertial>
+          <mass>0.01</mass>
+          <inertia>
+            <ixx>0.00001</ixx><iyy>0.00001</iyy><izz>0.00001</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry><sphere><radius>0.01</radius></sphere></geometry>
+          <material>
+            <ambient>1 1 0 1</ambient>
+            <diffuse>1 1 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <joint name="dock_back_joint" type="fixed">
+        <parent>chassis</parent>
+        <child>dock_back</child>
+      </joint>
+      <link name="dock_left">
+        <pose relative_to="chassis">0 0.05 0 0 0 0</pose>
+        <inertial>
+          <mass>0.01</mass>
+          <inertia>
+            <ixx>0.00001</ixx><iyy>0.00001</iyy><izz>0.00001</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry><sphere><radius>0.01</radius></sphere></geometry>
+          <material>
+            <ambient>1 1 0 1</ambient>
+            <diffuse>1 1 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <joint name="dock_left_joint" type="fixed">
+        <parent>chassis</parent>
+        <child>dock_left</child>
+      </joint>
+      <link name="dock_right">
+        <pose relative_to="chassis">0 -0.05 0 0 0 0</pose>
+        <inertial>
+          <mass>0.01</mass>
+          <inertia>
+            <ixx>0.00001</ixx><iyy>0.00001</iyy><izz>0.00001</izz>
+            <ixy>0</ixy><ixz>0</ixz><iyz>0</iyz>
+          </inertia>
+        </inertial>
+        <visual name="visual">
+          <geometry><sphere><radius>0.01</radius></sphere></geometry>
+          <material>
+            <ambient>1 1 0 1</ambient>
+            <diffuse>1 1 0 1</diffuse>
+          </material>
+        </visual>
+      </link>
+      <joint name="dock_right_joint" type="fixed">
+        <parent>chassis</parent>
+        <child>dock_right</child>
+      </joint>
+    </model>
+
+  </world>
+</sdf>
