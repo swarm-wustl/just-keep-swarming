@@ -20,6 +20,10 @@ setup(
             os.path.join("share", package_name, "description"),
             glob("description/*"),
         ),
+        (
+            os.path.join("share", package_name, "docs"),
+            glob("docs/*.md"),
+        ),
     ],
     install_requires=["setuptools"],
     zip_safe=True,
