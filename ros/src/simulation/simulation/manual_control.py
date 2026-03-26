@@ -172,7 +172,10 @@ class ManualControlNode(Node):
             result = subprocess.run(cmd, shell=True, capture_output=True, text=True, timeout=3)
 
             if result.returncode == 0 and result.stdout.strip():
-                data = json.loads(result.stdout)
+                # Handle case where multiple JSON objects are returned (one per line)
+                # Just parse the first line
+                first_line = result.stdout.strip().split('\n')[0]
+                data = json.loads(first_line)
 
                 if debug:
                     # Print all available model names
@@ -295,6 +298,12 @@ class ManualControlNode(Node):
         parent_connected = len(self.get_connected_robots(parent_id)) > 1
         child_connected = len(self.get_connected_robots(child_id)) > 1
 
+        # If BOTH robots are in chains, we can't reposition either one
+        # Just return True and let the attach command proceed (user must manually align)
+        if parent_connected and child_connected:
+            print(f"  Both robots are in chains - skipping repositioning (manual alignment required)")
+            return True
+
         # Decide which robot to move
         # If parent is in a chain, move child to parent
         # Otherwise, move parent to child (default)
@@ -376,13 +385,13 @@ class ManualControlNode(Node):
             print(f"  Alignment failed, aborting dock")
             return
 
-        # Send attach command
+        # Send attach command using os.system for reliability
         cmd = (
             f'gz topic -t /attach -m gz.msgs.StringMsg -p '
             f"'data:\"[robot_{parent_id}][chassis][robot_{child_id}][chassis][attach]\"'"
         )
         print(f"Sending dock command: robot_{parent_id} -> robot_{child_id}")
-        subprocess.run(cmd, shell=True, capture_output=True)
+        os.system(cmd)
 
         # Track connection
         self.connections.add((parent_id, child_id))
@@ -407,7 +416,7 @@ class ManualControlNode(Node):
             f"'data:\"[robot_{parent_id}][chassis][robot_{child_id}][chassis][detach]\"'"
         )
         print(f"Undocking robot_{parent_id} -> robot_{child_id}")
-        subprocess.run(cmd, shell=True, capture_output=True)
+        os.system(cmd)
 
         # Remove connection
         self.connections.discard((parent_id, child_id))
