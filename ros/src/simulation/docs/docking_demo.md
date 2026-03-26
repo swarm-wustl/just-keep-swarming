@@ -6,6 +6,36 @@ Runtime docking and undocking demonstration for modular robots in Gazebo Harmoni
 
 This demo shows 4 differential-drive robots that can dynamically attach and detach at runtime. When attached, robots form a rigid chain that can be driven as a single unit.
 
+### Environment
+
+The environment is designed to test cooperative robot behaviors:
+
+```
++===============================+  y = 2.2m
+|         END ZONE              |
+|                               |
++===+---------------------------+  y = 1.7m
+    |  narrow wall              |
++---+                           +  y = 1.6m
+|12cm                           |
+| gap   MIDDLE PLATFORM         |
+|       (docking area)          |
++===============================+  y = 0.9m
+|                               |
+|       GAP (20cm chasm)        |
+|                               |
++===============================+  y = 0.7m
+|                               |
+|       START ZONE              |
+|       (robots spawn)          |
++===============================+  y = 0.0m
+x=0                          x=1.2m
+```
+
+**Key challenges:**
+1. **Gap crossing (y=0.7-0.9m):** 20cm wide chasm - robots must form a chain to bridge across
+2. **Narrow passage (y=1.6-1.7m):** 12cm gap on LEFT side (x=0-0.12) - robots must turn left to approach, then detach to fit through individually
+
 ### Robot Specifications
 
 | Dimension | Value |
