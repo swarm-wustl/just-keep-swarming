@@ -125,21 +125,21 @@ class ManualControlNode(Node):
         return robot_id  # Fallback
 
     def send_velocity(self, linear: float, angular: float):
-        """Send velocity command to the chain root only.
+        """Send velocity command to ALL robots in the chain.
 
-        When robots are connected via fixed joints, only the root robot
-        should be driven - physics will move the rest of the chain.
-        This prevents conflicting drive commands.
+        When robots are connected via fixed joints, sending the same
+        velocity to all robots ensures their wheels work together
+        instead of some braking while others drive.
         """
         connected = self.get_connected_robots(self.selected_robot)
-        root = self.get_chain_root(self.selected_robot)
 
         msg = Twist()
         msg.linear.x = linear
         msg.angular.z = angular
 
-        # Only send to the root robot of the chain
-        self.cmd_vel_pubs[root].publish(msg)
+        # Send same velocity to all connected robots
+        for robot_id in connected:
+            self.cmd_vel_pubs[robot_id].publish(msg)
 
     def stop_robot(self, robot_id: int):
         """Stop a specific robot and all connected robots."""
@@ -319,14 +319,17 @@ class ManualControlNode(Node):
 
         # Find direction to place the new robot
         # If anchor has existing connections, use the FREE side (opposite from connections)
-        # Otherwise, use anchor's facing direction
+        # Otherwise, place behind anchor (opposite to anchor's facing direction)
         free_dir = self.get_free_docking_direction(anchor_robot)
         if free_dir is not None:
             dock_direction = free_dir
             print(f"  Using free side of anchor: {math.degrees(dock_direction):.1f}deg")
         else:
-            dock_direction = a_yaw
-            print(f"  Using anchor's facing direction: {math.degrees(dock_direction):.1f}deg")
+            # Place behind anchor (opposite to where anchor is facing)
+            dock_direction = a_yaw + math.pi
+            if dock_direction > math.pi:
+                dock_direction -= 2 * math.pi
+            print(f"  Placing behind anchor: {math.degrees(dock_direction):.1f}deg")
 
         # Position moving robot in the dock_direction from anchor
         docking_distance = 0.105  # 10.5cm center-to-center (nearly touching)
@@ -335,10 +338,8 @@ class ManualControlNode(Node):
         move_y = ay + docking_distance * math.sin(dock_direction)
         move_z = az
 
-        # Moving robot faces back toward anchor (opposite of dock_direction)
-        move_yaw = dock_direction + math.pi
-        if move_yaw > math.pi:
-            move_yaw -= 2 * math.pi
+        # Moving robot faces SAME direction as anchor (front-to-back attachment)
+        move_yaw = a_yaw
 
         print(f"  Moving robot_{move_robot} to ({move_x:.3f}, {move_y:.3f}) yaw={math.degrees(move_yaw):.1f}deg")
 
@@ -485,18 +486,23 @@ class ManualControlNode(Node):
         print(f"  Target robot_{child_id} pos: ({cx:.3f}, {cy:.3f}, {cz:.3f}) yaw={math.degrees(c_yaw):.1f}deg")
 
         # Calculate where parent should be positioned
-        # Place parent in front of child (direction child is facing), facing back toward child
-        # Robots are 10cm, so center-to-center distance of 10.5cm means ~0.5cm gap
+        # Place parent BEHIND child (opposite to child's facing direction)
+        # Both robots face the same direction (front-to-back attachment)
         docking_distance = 0.105  # 10.5cm center-to-center (nearly touching)
 
-        # Position parent in front of child (in the direction child is facing)
-        parent_x = cx + docking_distance * math.cos(c_yaw)
-        parent_y = cy + docking_distance * math.sin(c_yaw)
+        # Direction behind child
+        behind_dir = c_yaw + math.pi
+        if behind_dir > math.pi:
+            behind_dir -= 2 * math.pi
+
+        # Position parent behind child
+        parent_x = cx + docking_distance * math.cos(behind_dir)
+        parent_y = cy + docking_distance * math.sin(behind_dir)
         parent_z = cz
 
-        # Parent faces back toward child (opposite direction)
-        parent_yaw = c_yaw + math.pi
-        # Normalize to [-π, π]
+        # Parent faces same direction as child (front-to-back)
+        parent_yaw = c_yaw
+        # Normalize to [-π, π] (already normalized since it's c_yaw)
         if parent_yaw > math.pi:
             parent_yaw -= 2 * math.pi
 

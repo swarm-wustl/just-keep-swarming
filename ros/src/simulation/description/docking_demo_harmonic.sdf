@@ -23,11 +23,11 @@
       <ode>
         <solver>
           <type>world</type>
-          <iters>100</iters>
+          <iters>200</iters>
           <sor>1.3</sor>
         </solver>
         <constraints>
-          <cfm>0.0001</cfm>
+          <cfm>0.001</cfm>
           <erp>0.2</erp>
           <contact_max_correcting_vel>100</contact_max_correcting_vel>
           <contact_surface_layer>0.001</contact_surface_layer>
@@ -67,18 +67,16 @@
 
       +===============================+  y = 2.2m
       |         END ZONE              |
-      |                               |
-      +===+---------------------------+  y = 1.7m
-          |  narrow wall (turn req.)  |
-      +---+                           +  y = 1.6m
-      |12cm                           |
+      +===+                           |  y = 2.0m (chicane wall, x=0-0.35)
+      |   |                           |
+      |   +---------------------------|  y = 1.7m
+      +--+    narrow wall             |
+      |18cm                           +  y = 1.6m
       | gap   MIDDLE PLATFORM         |
       |       (docking area)          |
       +===============================+  y = 0.9m
-      |                               |
-      |       GAP (20cm chasm)        |  <- Robots must chain to cross
-      |                               |
-      +===============================+  y = 0.7m
+      |       GAP (10cm chasm)        |  <- Robots must chain to cross
+      +===============================+  y = 0.8m
       |                               |
       |       START ZONE              |
       |       (robots spawn)          |
@@ -86,8 +84,8 @@
       x=0                          x=1.2m
 
       Key challenges:
-      1. 20cm gap (y=0.7-0.9): robots must form chain to bridge
-      2. 12cm passage on LEFT (x=0-0.12): requires turn, robots must detach
+      1. 10cm gap (y=0.8-0.9): robots must form chain to bridge
+      2. 18cm passageway on LEFT (x=0-0.18) with chicane: requires S-turn, chains cannot fit
     -->
 
     <!-- Ground plane - visual only at z=-0.05, no collision (platforms provide collision) -->
@@ -107,16 +105,16 @@
     </model>
 
     <!-- Start platform (solid ground before the gap) - enlarged for docking -->
-    <!-- y spans 0 to 0.7 (70cm deep) -->
+    <!-- y spans 0 to 0.8 (80cm deep), gap is now 10cm -->
     <model name="start_platform">
       <static>true</static>
-      <pose>0.6 0.35 -0.03 0 0 0</pose>
+      <pose>0.6 0.4 -0.03 0 0 0</pose>
       <link name="link">
         <collision name="collision">
-          <geometry><box><size>1.2 0.7 0.04</size></box></geometry>
+          <geometry><box><size>1.2 0.8 0.04</size></box></geometry>
         </collision>
         <visual name="visual">
-          <geometry><box><size>1.2 0.7 0.04</size></box></geometry>
+          <geometry><box><size>1.2 0.8 0.04</size></box></geometry>
           <material>
             <ambient>0.3 0.5 0.3 1</ambient>
             <diffuse>0.3 0.5 0.3 1</diffuse>
@@ -125,17 +123,17 @@
       </link>
     </model>
 
-    <!-- Middle platform (after the gap, before narrow passage) - enlarged for docking -->
-    <!-- y spans 0.9 to 1.6 (70cm deep) -->
+    <!-- Middle platform (after the chasm, before narrow passage) - enlarged for docking -->
+    <!-- y spans 0.9 to 1.7 (80cm deep) - extends to narrow wall -->
     <model name="middle_platform">
       <static>true</static>
-      <pose>0.6 1.25 -0.03 0 0 0</pose>
+      <pose>0.6 1.3 -0.03 0 0 0</pose>
       <link name="link">
         <collision name="collision">
-          <geometry><box><size>1.2 0.7 0.04</size></box></geometry>
+          <geometry><box><size>1.2 0.8 0.04</size></box></geometry>
         </collision>
         <visual name="visual">
-          <geometry><box><size>1.2 0.7 0.04</size></box></geometry>
+          <geometry><box><size>1.2 0.8 0.04</size></box></geometry>
           <material>
             <ambient>0.3 0.5 0.3 1</ambient>
             <diffuse>0.3 0.5 0.3 1</diffuse>
@@ -179,17 +177,17 @@
       </link>
     </model>
 
-    <!-- NARROW PASSAGE: 12cm gap on LEFT side - requires turn to navigate -->
-    <!-- Gap is from x=0 to x=0.12, wall covers x=0.12 to x=1.2 -->
+    <!-- NARROW PASSAGEWAY: 18cm opening on LEFT side - requires turn to navigate -->
+    <!-- Opening is from x=0 to x=0.18, wall covers x=0.18 to x=1.2 -->
     <model name="narrow_wall">
       <static>true</static>
-      <pose>0.66 1.65 0.05 0 0 0</pose>
+      <pose>0.69 1.65 0.05 0 0 0</pose>
       <link name="link">
         <collision name="collision">
-          <geometry><box><size>1.08 0.1 0.1</size></box></geometry>
+          <geometry><box><size>1.02 0.1 0.1</size></box></geometry>
         </collision>
         <visual name="visual">
-          <geometry><box><size>1.08 0.1 0.1</size></box></geometry>
+          <geometry><box><size>1.02 0.1 0.1</size></box></geometry>
           <material>
             <ambient>0.4 0.4 0.5 1</ambient>
             <diffuse>0.4 0.4 0.5 1</diffuse>
@@ -197,7 +195,28 @@
         </visual>
       </link>
     </model>
-    <!-- Gap on left: x = 0 to 0.12 (12cm wide) - robots must turn left to pass -->
+    <!-- Passageway on left: x=0 to x=0.18 (18cm wide) - robots must turn left to pass -->
+
+    <!-- CHICANE WALL: Forces a turn after passageway, chains cannot fit -->
+    <!-- Perpendicular wall extending from left perimeter, blocking straight path -->
+    <!-- Robot must turn right after entering to go around this wall -->
+    <model name="chicane_wall">
+      <static>true</static>
+      <pose>0.175 2.0 0.05 0 0 0</pose>
+      <link name="link">
+        <collision name="collision">
+          <geometry><box><size>0.35 0.1 0.1</size></box></geometry>
+        </collision>
+        <visual name="visual">
+          <geometry><box><size>0.35 0.1 0.1</size></box></geometry>
+          <material>
+            <ambient>0.4 0.4 0.5 1</ambient>
+            <diffuse>0.4 0.4 0.5 1</diffuse>
+          </material>
+        </visual>
+      </link>
+    </model>
+    <!-- Chicane spans x=0 to x=0.35 at y=2.0, giving 25cm clearance from narrow wall -->
 
     <!-- PERIMETER WALLS -->
     <!-- Left wall (x=0) -->
@@ -313,7 +332,7 @@
         <collision name="collision">
           <geometry><cylinder><radius>0.05</radius><length>0.01</length></cylinder></geometry>
           <surface>
-            <friction><ode><mu>1.0</mu><mu2>1.0</mu2><slip1>0.002</slip1><slip2>0.002</slip2></ode></friction>
+            <friction><ode><mu>1.0</mu><mu2>1.0</mu2><slip1>0.01</slip1><slip2>0.01</slip2></ode></friction>
           </surface>
         </collision>
         <visual name="visual">
@@ -343,7 +362,7 @@
         <collision name="collision">
           <geometry><cylinder><radius>0.05</radius><length>0.01</length></cylinder></geometry>
           <surface>
-            <friction><ode><mu>1.0</mu><mu2>1.0</mu2><slip1>0.002</slip1><slip2>0.002</slip2></ode></friction>
+            <friction><ode><mu>1.0</mu><mu2>1.0</mu2><slip1>0.01</slip1><slip2>0.01</slip2></ode></friction>
           </surface>
         </collision>
         <visual name="visual">
@@ -540,7 +559,7 @@
         <collision name="collision">
           <geometry><cylinder><radius>0.05</radius><length>0.01</length></cylinder></geometry>
           <surface>
-            <friction><ode><mu>1.0</mu><mu2>1.0</mu2><slip1>0.002</slip1><slip2>0.002</slip2></ode></friction>
+            <friction><ode><mu>1.0</mu><mu2>1.0</mu2><slip1>0.01</slip1><slip2>0.01</slip2></ode></friction>
           </surface>
         </collision>
         <visual name="visual">
@@ -569,7 +588,7 @@
         <collision name="collision">
           <geometry><cylinder><radius>0.05</radius><length>0.01</length></cylinder></geometry>
           <surface>
-            <friction><ode><mu>1.0</mu><mu2>1.0</mu2><slip1>0.002</slip1><slip2>0.002</slip2></ode></friction>
+            <friction><ode><mu>1.0</mu><mu2>1.0</mu2><slip1>0.01</slip1><slip2>0.01</slip2></ode></friction>
           </surface>
         </collision>
         <visual name="visual">
@@ -765,7 +784,7 @@
         <collision name="collision">
           <geometry><cylinder><radius>0.05</radius><length>0.01</length></cylinder></geometry>
           <surface>
-            <friction><ode><mu>1.0</mu><mu2>1.0</mu2><slip1>0.002</slip1><slip2>0.002</slip2></ode></friction>
+            <friction><ode><mu>1.0</mu><mu2>1.0</mu2><slip1>0.01</slip1><slip2>0.01</slip2></ode></friction>
           </surface>
         </collision>
         <visual name="visual">
@@ -794,7 +813,7 @@
         <collision name="collision">
           <geometry><cylinder><radius>0.05</radius><length>0.01</length></cylinder></geometry>
           <surface>
-            <friction><ode><mu>1.0</mu><mu2>1.0</mu2><slip1>0.002</slip1><slip2>0.002</slip2></ode></friction>
+            <friction><ode><mu>1.0</mu><mu2>1.0</mu2><slip1>0.01</slip1><slip2>0.01</slip2></ode></friction>
           </surface>
         </collision>
         <visual name="visual">
@@ -990,7 +1009,7 @@
         <collision name="collision">
           <geometry><cylinder><radius>0.05</radius><length>0.01</length></cylinder></geometry>
           <surface>
-            <friction><ode><mu>1.0</mu><mu2>1.0</mu2><slip1>0.002</slip1><slip2>0.002</slip2></ode></friction>
+            <friction><ode><mu>1.0</mu><mu2>1.0</mu2><slip1>0.01</slip1><slip2>0.01</slip2></ode></friction>
           </surface>
         </collision>
         <visual name="visual">
@@ -1019,7 +1038,7 @@
         <collision name="collision">
           <geometry><cylinder><radius>0.05</radius><length>0.01</length></cylinder></geometry>
           <surface>
-            <friction><ode><mu>1.0</mu><mu2>1.0</mu2><slip1>0.002</slip1><slip2>0.002</slip2></ode></friction>
+            <friction><ode><mu>1.0</mu><mu2>1.0</mu2><slip1>0.01</slip1><slip2>0.01</slip2></ode></friction>
           </surface>
         </collision>
         <visual name="visual">
