@@ -1,3 +1,4 @@
+import os
 from setuptools import find_packages, setup
 
 package_name = 'camera_module'
@@ -10,6 +11,10 @@ setup(
         ('share/ament_index/resource_index/packages',
             ['resource/' + package_name]),
         ('share/' + package_name, ['package.xml']),
+        # Explicitly listing the launch file instead of using glob
+        (os.path.join('share', package_name, 'launch'), [
+            'launch/map_maker.launch.py'
+        ]),
     ],
     install_requires=['setuptools'],
     zip_safe=True,
