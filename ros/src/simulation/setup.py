@@ -35,6 +35,7 @@ setup(
         "console_scripts": [
             "random_control = simulation.demo_control:main",
             "manual_control = simulation.manual_control:main",
+            "docking_test = simulation.docking_test:main",
         ],
     },
 )
