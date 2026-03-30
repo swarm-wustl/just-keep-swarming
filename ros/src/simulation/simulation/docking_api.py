@@ -73,32 +73,35 @@ class DockingController(Node):
         return None
 
     def set_robot_pose(self, robot_id: int, x: float, y: float, z: float, yaw: float, verify: bool = True) -> bool:
-        """Set robot pose in Gazebo with optional verification."""
-        x = round(x, 3)
-        y = round(y, 3)
-        z = round(z, 3)
+        """
+        Teleport a robot to the specified pose.
 
+        Args:
+            robot_id: The robot to move
+            x, y, z: Target position
+            yaw: Target orientation (radians)
+            verify: If True, read back pose and verify within tolerance
+
+        Returns:
+            True if pose was set successfully
+        """
         qz = round(math.sin(yaw / 2.0), 6)
         qw = round(math.cos(yaw / 2.0), 6)
 
-        req = f'name: "robot_{robot_id}", position: {{x: {x}, y: {y}, z: {z}}}, orientation: {{x: 0, y: 0, z: {qz}, w: {qw}}}'
+        req = f'name: "robot_{robot_id}", position: {{x: {x:.3f}, y: {y:.3f}, z: {z:.3f}}}, orientation: {{x: 0, y: 0, z: {qz}, w: {qw}}}'
         cmd = f"gz service -s /world/docking_demo/set_pose --reqtype gz.msgs.Pose --reptype gz.msgs.Boolean --timeout 2000 --req '{req}'"
 
-        ret = os.system(cmd)
-        time.sleep(0.15)
-
-        if ret != 0:
+        if os.system(cmd) != 0:
             return False
 
         if verify:
-            # Verify pose was set correctly (within tolerance)
             time.sleep(0.1)
             actual = self.get_robot_pose(robot_id)
             if actual is None:
                 return False
-            ax, ay, _, ayaw = actual
+            ax, ay, _, _ = actual
             pos_error = math.sqrt((ax - x) ** 2 + (ay - y) ** 2)
-            if pos_error > 0.05:  # 5cm tolerance
+            if pos_error > 0.05:
                 self.get_logger().warn(f"Pose verification failed: expected ({x:.3f}, {y:.3f}), got ({ax:.3f}, {ay:.3f})")
                 return False
 
@@ -160,99 +163,59 @@ class DockingController(Node):
 
         return None
 
-    def align_for_docking(self, parent_id: int, child_id: int, verbose: bool = True) -> bool:
-        """Align robots for docking. Moves the unconnected robot to the connected one."""
-        if verbose:
-            print(f"  Aligning robot_{parent_id} to dock with robot_{child_id}...")
+    def align_for_docking(self, parent_id: int, child_id: int) -> bool:
+        """
+        Align robots for docking by teleporting the unconnected robot to the connected one.
 
-        # Stop both robots and try to cancel velocities (matches working code)
-        for _ in range(10):
-            self.cmd_vel_pubs[parent_id].publish(Twist())
-            self.cmd_vel_pubs[child_id].publish(Twist())
-            time.sleep(0.02)
-        time.sleep(0.3)
-
-        # Check which robot is in a chain
+        If one robot is already in a chain, the free robot is moved to it.
+        If neither is in a chain, the parent is moved to the child.
+        """
         parent_connected = len(self.get_connected_robots(parent_id)) > 1
         child_connected = len(self.get_connected_robots(child_id)) > 1
 
-        # If both in chains, skip repositioning
         if parent_connected and child_connected:
-            if verbose:
-                print("  Both robots in chains - skipping repositioning")
             return True
 
-        # Decide which robot to move
         if parent_connected and not child_connected:
             move_robot = child_id
             anchor_robot = parent_id
-            if verbose:
-                print(f"  robot_{parent_id} is in a chain, moving robot_{child_id} to it")
         else:
             move_robot = parent_id
             anchor_robot = child_id
-            if child_connected and verbose:
-                print(f"  robot_{child_id} is in a chain, moving robot_{parent_id} to it")
 
-        # Get anchor pose
         anchor_pose = self.get_robot_pose(anchor_robot)
         if anchor_pose is None:
-            if verbose:
-                print(f"  ERROR: Could not get pose for robot_{anchor_robot}")
             return False
 
         ax, ay, az, a_yaw = anchor_pose
-        if verbose:
-            print(f"  Anchor robot_{anchor_robot} at ({ax:.3f}, {ay:.3f}) yaw={math.degrees(a_yaw):.1f}deg")
 
-        # Find docking direction
         free_dir = self.get_free_docking_direction(anchor_robot)
         if free_dir is not None:
             dock_direction = free_dir
-            if verbose:
-                print(f"  Using free side of anchor: {math.degrees(dock_direction):.1f}deg")
         else:
             dock_direction = a_yaw + math.pi
             if dock_direction > math.pi:
                 dock_direction -= 2 * math.pi
-            if verbose:
-                print(f"  Placing behind anchor: {math.degrees(dock_direction):.1f}deg")
 
-        # Position moving robot behind anchor
         docking_distance = 0.105
         move_x = ax + docking_distance * math.cos(dock_direction)
         move_y = ay + docking_distance * math.sin(dock_direction)
         move_z = az
-        move_yaw = a_yaw  # Same direction as anchor (front-to-back)
+        move_yaw = a_yaw
 
-        if verbose:
-            print(f"  Moving robot_{move_robot} to ({move_x:.3f}, {move_y:.3f}) yaw={math.degrees(move_yaw):.1f}deg")
-
-        # Move only the moving robot (matches working code exactly)
-        ok = self.set_robot_pose(move_robot, move_x, move_y, move_z, move_yaw, verify=False)
-        time.sleep(0.3)
-
-        # Stop again to cancel any residual motion
-        for _ in range(5):
-            self.cmd_vel_pubs[move_robot].publish(Twist())
-            time.sleep(0.02)
-
-        if verbose and ok:
-            final_pose = self.get_robot_pose(move_robot)
-            if final_pose:
-                fx, fy, _, fyaw = final_pose
-                print(f"  Final position: ({fx:.3f}, {fy:.3f}) yaw={math.degrees(fyaw):.1f}deg")
-
-        return ok
+        return self.set_robot_pose(move_robot, move_x, move_y, move_z, move_yaw, verify=False)
 
     def dock(self, parent_id: int, child_id: int, auto_align: bool = True) -> bool:
         """
-        Dock two robots together.
+        Dock two robots together using a fixed joint.
+
+        The simulation is paused during docking to prevent physics momentum from
+        causing misalignment between the teleport and joint creation.
 
         Args:
-            parent_id: The robot initiating the dock
-            child_id: The robot being docked to
-            auto_align: If True, automatically align robots before docking
+            parent_id: The parent robot in the connection
+            child_id: The child robot in the connection
+            auto_align: If True, automatically teleport robots into alignment
 
         Returns:
             True if docking succeeded
@@ -267,41 +230,25 @@ class DockingController(Node):
             self.get_logger().error("Cannot dock robot to itself")
             return False
         if (parent_id, child_id) in self.connections:
-            self.get_logger().warn(f"robot_{parent_id} already docked to robot_{child_id}")
             return True
 
-        # 1. Stop sending cmd_vel commands
         self.stop_robot(parent_id)
         self.stop_robot(child_id)
-        time.sleep(0.1)
 
-        # 2. Freeze the world to prevent collision repulsions
         self.pause_sim()
-        
         try:
-            # 3. Teleport into perfect alignment while physics is suspended
-            if auto_align:
-                if not self.align_for_docking(parent_id, child_id, verbose=True):
-                    print("  Alignment failed, aborting dock")
-                    self.unpause_sim()
-                    return False
+            if auto_align and not self.align_for_docking(parent_id, child_id):
+                return False
 
-            # 4. Lock the joint. Since physics is paused, no micro-movements can occur
             cmd = (
                 f'gz topic -t /attach -m gz.msgs.StringMsg -p '
                 f"'data:\"[robot_{parent_id}][chassis][robot_{child_id}][chassis][attach]\"'"
             )
-            print(f"Sending dock command: robot_{parent_id} -> robot_{child_id}")
             os.system(cmd)
-            
-            # Short sleep to ensure the Ignition transport layer processes the message
-            time.sleep(0.2) 
-
+            time.sleep(0.1)
         finally:
-            # 5. Safely unpause the world
             self.unpause_sim()
 
-        # Track connection
         self.connections.add((parent_id, child_id))
         return True
 
@@ -325,12 +272,10 @@ class DockingController(Node):
         self.stop_robot(child_id)
         time.sleep(0.1)
 
-        # Send detach command
         cmd = (
             f'gz topic -t /attach -m gz.msgs.StringMsg -p '
             f"'data:\"[robot_{parent_id}][chassis][robot_{child_id}][chassis][detach]\"'"
         )
-        print(f"Undocking robot_{parent_id} -> robot_{child_id}")
         os.system(cmd)
 
         # Remove connection
@@ -368,12 +313,11 @@ class DockingController(Node):
             time.sleep(0.02)
 
     def pause_sim(self) -> bool:
-        """Pause the Gazebo physics engine."""
+        """Pause the Gazebo simulation."""
         cmd = "gz service -s /world/docking_demo/control --reqtype gz.msgs.WorldControl --reptype gz.msgs.Boolean --timeout 2000 --req 'pause: true'"
-        print(f"!!!!!! Pausing Sim: {cmd}")
         return os.system(cmd) == 0
 
     def unpause_sim(self) -> bool:
-        """Resume the Gazebo physics engine."""
+        """Resume the Gazebo simulation."""
         cmd = "gz service -s /world/docking_demo/control --reqtype gz.msgs.WorldControl --reptype gz.msgs.Boolean --timeout 2000 --req 'pause: false'"
         return os.system(cmd) == 0

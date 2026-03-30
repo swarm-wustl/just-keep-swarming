@@ -23,7 +23,6 @@ Controls:
     Q/Esc:    Quit
 """
 
-import math
 import sys
 import termios
 import time
@@ -73,9 +72,6 @@ class ManualControlNode(DockingController):
         print("  L       : Dock previous -> selected (N-1 to N)")
         print("  ;       : Undock previous -> selected")
         print("-" * 50)
-        print("  T       : Test pose (move selected to 0.5, 0.5)")
-        print("  R       : Test read+move (read pose, move +0.2 in X)")
-        print("  P       : Position for docking (no attach)")
         print("  H       : Show this help")
         print("  Q/Esc   : Quit")
         print("=" * 50 + "\n")
@@ -126,90 +122,6 @@ class ManualControlNode(DockingController):
                 print(f"Selected: robot_{robot_id} ({colors[robot_id]}) + connected: {', '.join(others)}")
             else:
                 print(f"Selected: robot_{robot_id} ({colors[robot_id]})")
-
-    def test_pose_set(self):
-        """Test pose setting with a fixed known position."""
-        robot_id = self.selected_robot
-        print(f"\n=== TEST: Moving robot_{robot_id} to (0.5, 0.5, 0.05) yaw=0 ===")
-        self.stop_robot(robot_id)
-        time.sleep(0.3)
-        result = self.set_robot_pose(robot_id, 0.5, 0.5, 0.05, 0.0)
-        print(f"=== TEST RESULT: {'SUCCESS' if result else 'FAILED'} ===\n")
-
-    def test_pose_read_and_move(self):
-        """Test reading pose and moving robot +0.2 in X direction."""
-        robot_id = self.selected_robot
-        print(f"\n=== TEST READ+MOVE: Reading robot_{robot_id} pose and moving +0.2 in X ===")
-        self.stop_robot(robot_id)
-        time.sleep(0.3)
-
-        pose = self.get_robot_pose(robot_id)
-        if pose is None:
-            print("=== TEST FAILED: Could not read pose ===\n")
-            return
-
-        x, y, z, yaw = pose
-        print(f"  Current pose: ({x:.4f}, {y:.4f}, {z:.4f}) yaw={math.degrees(yaw):.1f}deg")
-
-        new_x = x + 0.2
-        print(f"  Moving to: ({new_x:.4f}, {y:.4f}, {z:.4f}) yaw={yaw:.4f}")
-        result = self.set_robot_pose(robot_id, new_x, y, z, yaw)
-        print(f"=== TEST RESULT: {'SUCCESS' if result else 'FAILED'} ===\n")
-
-    def test_position_for_docking(self):
-        """Position selected robot next to the target robot for docking (no attach)."""
-        parent_id = self.selected_robot
-        child_id = parent_id + 1
-
-        if child_id >= self.num_robots:
-            print(f"No robot after robot_{parent_id} to dock with")
-            return
-
-        print(f"\n=== POSITION FOR DOCKING: robot_{parent_id} -> robot_{child_id} ===")
-
-        # Stop both robots
-        print(f"  Stopping robots...")
-        for _ in range(10):
-            self.cmd_vel_pubs[parent_id].publish(Twist())
-            self.cmd_vel_pubs[child_id].publish(Twist())
-            time.sleep(0.02)
-        time.sleep(0.3)
-
-        # Get pose of TARGET robot (child)
-        child_pose = self.get_robot_pose(child_id)
-        if child_pose is None:
-            print("  ERROR: Could not get target robot pose")
-            return
-
-        cx, cy, cz, c_yaw = child_pose
-        print(f"  Target robot_{child_id} pos: ({cx:.3f}, {cy:.3f}, {cz:.3f}) yaw={math.degrees(c_yaw):.1f}deg")
-
-        # Place parent BEHIND child
-        docking_distance = 0.105
-        behind_dir = c_yaw + math.pi
-        if behind_dir > math.pi:
-            behind_dir -= 2 * math.pi
-
-        parent_x = cx + docking_distance * math.cos(behind_dir)
-        parent_y = cy + docking_distance * math.sin(behind_dir)
-        parent_z = cz
-        parent_yaw = c_yaw
-
-        if parent_yaw > math.pi:
-            parent_yaw -= 2 * math.pi
-
-        print(f"  Moving robot_{parent_id} to: ({parent_x:.3f}, {parent_y:.3f}, {parent_z:.3f}) yaw={math.degrees(parent_yaw):.1f}deg")
-        print(f"  (robot_{child_id} stays at current position)")
-
-        # Move only the parent robot
-        self.set_robot_pose(parent_id, parent_x, parent_y, parent_z, parent_yaw)
-        time.sleep(0.3)
-
-        for _ in range(5):
-            self.cmd_vel_pubs[parent_id].publish(Twist())
-            time.sleep(0.02)
-
-        print(f"=== POSITIONING COMPLETE - Press J to attach ===\n")
 
     def do_dock(self, parent_id: int, child_id: int):
         """Dock two robots with user feedback."""
@@ -305,14 +217,6 @@ def main():
                 node.do_dock(node.selected_robot - 1, node.selected_robot)
             elif key == ";":  # Undock from previous
                 node.do_undock(node.selected_robot - 1, node.selected_robot)
-
-            # Test commands
-            elif key in ("t", "T"):
-                node.test_pose_set()
-            elif key in ("r", "R"):
-                node.test_pose_read_and_move()
-            elif key in ("p", "P"):
-                node.test_position_for_docking()
 
             # Quit
             elif key in ("q", "\x03"):  # Q or Ctrl+C
