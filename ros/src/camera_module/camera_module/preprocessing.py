@@ -19,7 +19,7 @@ import sensor_msgs_py.point_cloud2 as pc2
 import numpy as np
 
 
-CAMERA_HEIGHT = 0.1         
+CAMERA_HEIGHT = 0.09         
 GROUND_BAND = 0.05 # ±5 cm
 
 # anything more than OBSTACLE_MIN above the ground band is an obstacle
