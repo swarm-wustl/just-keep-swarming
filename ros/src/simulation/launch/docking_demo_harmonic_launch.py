@@ -38,7 +38,7 @@ import os
 from ament_index_python.packages import get_package_share_directory
 
 from launch import LaunchDescription
-from launch.actions import ExecuteProcess
+from launch.actions import ExecuteProcess, SetEnvironmentVariable
 from launch_ros.actions import Node
 
 
@@ -49,6 +49,12 @@ def generate_launch_description():
     package_share_dir = get_package_share_directory("simulation")
     world_sdf_path = os.path.join(
         package_share_dir, "description", "docking_demo_harmonic.sdf"
+    )
+
+    # Set GZ_SIM_RESOURCE_PATH to include the simulation package for material loading
+    set_resource_path = SetEnvironmentVariable(
+        name="GZ_SIM_RESOURCE_PATH",
+        value=package_share_dir + os.pathsep + os.environ.get("GZ_SIM_RESOURCE_PATH", "")
     )
 
     # Launch Gazebo Harmonic
@@ -68,6 +74,11 @@ def generate_launch_description():
         bridge_args.append(
             f"/model/robot_{i}/odometry@nav_msgs/msg/Odometry[gz.msgs.Odometry"
         )
+    
+    # Overhead camera: Gazebo -> ROS 2
+    bridge_args.append(
+        "/camera/image@sensor_msgs/msg/Image[gz.msgs.Image"
+    )
 
     # ros_gz_bridge node
     ros_gz_bridge = Node(
@@ -78,6 +89,7 @@ def generate_launch_description():
     )
 
     return LaunchDescription([
+        set_resource_path,
         run_gz_sim,
         ros_gz_bridge,
     ])

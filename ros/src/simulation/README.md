@@ -15,6 +15,8 @@ The `AttachablePlugin` must be in Gazebo's plugin path. Before launching, run:
 
 ```bash
 export GZ_SIM_SYSTEM_PLUGIN_PATH=$PWD/build/attachable_joint_plugin:$GZ_SIM_SYSTEM_PLUGIN_PATH
+source /opt/ros/jazzy/setup.zsh
+source /usr/share/gazebo/setup.zsh 2>/dev/null || true
 ```
 
 You can add this to your shell profile or source it before each session.
@@ -136,3 +138,22 @@ ros2 launch simulation docking_demo_launch.py
 ```
 
 This launches a demo using the built-in DetachableJoint with pre-defined connections. Docking commands use the `ign topic` syntax and require joints to be pre-configured in the world file.
+
+### test
+```
+d for fd 65: 10de:25a2, driver (null)
+[gz-1]
+[gz-1] [GUI] [Err] [SystemPaths.cc:425] Unable to find file with URI [model://simulation/materials/textures/apriltag_36h11_id_0.png]
+[gz-1] [GUI] [Err] [SystemPaths.cc:525] Could not resolve file [model://simulation/materials/textures/apriltag_36h11_id_0.png]
+[gz-1] [GUI] [Err] [SceneManager.cc:928] Unable to find file [model://simulation/materials/textures/apriltag_36h11_id_0.png]
+[gz-1] [GUI] [Err] [SystemPaths.cc:425] Unable to find file with URI [model://simulation/materials/textures/apriltag_36h11_id_1.png]
+[gz-1] [GUI] [Err] [SystemPaths.cc:525] Could not resolve file [model://simulation/materials/textures/apriltag_36h11_id_1.png]
+[gz-1] [GUI] [Err] [SceneManager.cc:928] Unable to find file [model://simulation/materials/textures/apriltag_36h11_id_1.png]
+[gz-1] [GUI] [Err] [SystemPaths.cc:425] Unable to find file with URI [model://simulation/materials/textures/apriltag_36h11_id_2.png]
+[gz-1] [GUI] [Err] [SystemPaths.cc:525] Could not resolve file [model://simulation/materials/textures/apriltag_36h11_id_2.png]
+[gz-1] [GUI] [Err] [SceneManager.cc:928] Unable to find file [model://simulation/materials/textures/apriltag_36h11_id_2.png]
+[gz-1] [GUI] [Err] [SystemPaths.cc:425] Unable to find file with URI [model://simulation/materials/textures/apriltag_36h11_id_3.png]
+[gz-1] [GUI] [Err] [SystemPaths.cc:525] Could not resolve file [model://simulation/materials/textures/apriltag_36h11_id_3.png]
+[gz-1] [GUI] [Err] [SceneManager.cc:928] Unable to find file [model://simulation/materials/textures/apriltag_36h11_id_3.png]
+
+```

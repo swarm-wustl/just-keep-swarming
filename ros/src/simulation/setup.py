@@ -21,6 +21,10 @@ setup(
             glob("description/*"),
         ),
         (
+            os.path.join("share", package_name, "materials", "textures"),
+            glob("materials/textures/*.png"),
+        ),
+        (
             os.path.join("share", package_name, "docs"),
             glob("docs/*.md"),
         ),
